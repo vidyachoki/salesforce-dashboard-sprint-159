@@ -1,0 +1,2143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Salesforce Sprint 159 Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f2f5;color:#1a1a18;padding:2rem;font-size:14px;line-height:1.6}
+/* HEADER */
+.dash-header{background:linear-gradient(135deg,#1a3a5c 0%,#1565c0 60%,#1976d2 100%);border-radius:14px;padding:1.5rem 2rem;margin-bottom:1.5rem;color:#fff;box-shadow:0 4px 20px #1565c040}
+.dash-header h1{font-size:22px;font-weight:600;margin-bottom:2px}
+.dash-header .subtitle{font-size:13px;color:#b3d4ff;margin:0}
+.slabel{font-size:11px;font-weight:700;color:#666;text-transform:uppercase;letter-spacing:.08em;margin:0 0 8px}
+/* ASSIGNEE FILTER */
+.afilter{background:#fff;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem;box-shadow:0 1px 4px #0001;border:.5px solid #e0e0e0}
+.arow{display:flex;gap:8px;flex-wrap:wrap}
+.abtn{padding:6px 18px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e0ddd8;background:#f8f7f4;color:#555;transition:all .2s;display:flex;align-items:center;gap:6px}
+.abtn:hover{transform:translateY(-1px);box-shadow:0 2px 8px #0002}
+.abtn.active{color:#fff;border-color:transparent;box-shadow:0 3px 10px #0003}
+.abtn[data-who="All"].active{background:#444}
+.abtn[data-who="Ajay"].active{background:#0f6e56}
+.abtn[data-who="Amanulla"].active{background:#6b3fa0}
+.abtn[data-who="Naveen"].active{background:#1a6fc4}
+.abtn[data-who="Garima"].active{background:#b55a1a}
+.acolor{width:8px;height:8px;border-radius:50%}
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.25rem}
+.metric{background:#fff;border-radius:12px;padding:16px 18px;cursor:pointer;border:.5px solid #e0e0e0;box-shadow:0 1px 4px #0001;transition:all .2s;position:relative;overflow:hidden}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0}
+.metric.m-total::before{background:linear-gradient(90deg,#1565c0,#42a5f5)}
+.metric.m-done::before{background:linear-gradient(90deg,#2e7d32,#66bb6a)}
+.metric.m-inprog::before{background:linear-gradient(90deg,#0277bd,#29b6f6)}
+.metric.m-pend::before{background:linear-gradient(90deg,#6a1b9a,#ab47bc)}
+.metric:hover{transform:translateY(-2px);box-shadow:0 4px 16px #0002}
+.metric.active-filter{box-shadow:0 4px 16px #1565c040;border-color:#1565c0}
+.mlabel{font-size:11px;color:#888;margin:0 0 6px;font-weight:600}
+.mnum{font-size:28px;font-weight:700;margin:0;color:#1a1a18}
+.msub{font-size:11px;color:#aaa;margin:4px 0 0}
+.mclick{font-size:10px;color:#1565c0;margin:4px 0 0;opacity:.7}
+/* FILTER BAR */
+.filterbar{background:#fff;border-radius:12px;padding:.875rem 1.25rem;margin-bottom:1rem;box-shadow:0 1px 4px #0001;border:.5px solid #e0e0e0;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.filterbar label{font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.06em}
+.fsel{padding:5px 10px;border-radius:8px;font-size:12px;border:1.5px solid #e0ddd8;background:#f8f7f4;color:#333;cursor:pointer;outline:none;transition:border .15s}
+.fsel:focus{border-color:#1565c0}
+.reset-btn{padding:5px 14px;border-radius:8px;font-size:12px;font-weight:600;background:#fee;color:#c0392b;border:1.5px solid #fcc;cursor:pointer;margin-left:auto}
+.reset-btn:hover{background:#fdd}
+.active-filters{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;width:100%}
+.ftag{background:#e8f1fb;color:#185fa5;font-size:11px;padding:2px 10px;border-radius:12px;font-weight:600;display:flex;align-items:center;gap:4px}
+.ftag span{cursor:pointer;opacity:.7;font-size:13px;line-height:1}
+.ftag span:hover{opacity:1}
+/* TABS */
+.tabrow{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap}
+.tab{padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:.5px solid #ccc;background:#fff;color:#666;transition:all .2s;box-shadow:0 1px 3px #0001}
+.tab:hover{background:#f0ede8;transform:translateY(-1px)}
+.tab.active{background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border-color:transparent;box-shadow:0 3px 10px #1565c040}
+.panel{display:none}
+.panel.active{display:block}
+/* TABLE CARD */
+.table-card{background:#fff;border-radius:12px;box-shadow:0 1px 6px #0001;border:.5px solid #e0e0e0;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-weight:600;font-size:11px;color:#666;text-align:left;padding:8px 12px;border-bottom:1.5px solid #e8e8e8;background:#f8f9fa;text-transform:uppercase;letter-spacing:.05em}
+td{padding:10px 12px;border-bottom:.5px solid #f0f0f0;vertical-align:top;color:#1a1a18;line-height:1.45}
+tr.trow:hover td{background:#f8f9ff}
+tr.trow.hidden{display:none}
+tr.pg-row td{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;padding:7px 14px}
+tr.pg-row.hidden{display:none}
+/* BADGES */
+.pbadge,.sbadge,.catbadge{display:inline-block;font-size:11px;font-weight:600;padding:3px 9px;border-radius:5px;white-space:nowrap}
+.catbadge{background:#f0f2f5;color:#555;border:.5px solid #ddd}
+/* ASSIGNEE DOT */
+.adot{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;font-size:9px;font-weight:800;color:#fff;flex-shrink:0}
+.acell{display:flex;align-items:center;gap:6px}
+/* EPIC TAG */
+.etag{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;background:#e8f0fe;color:#1a56db;margin-right:4px;border:.5px solid #c7d9fc}
+/* LINKS */
+a.jl{color:#1565c0;text-decoration:none;font-weight:600}
+a.jl:hover{text-decoration:underline;color:#0d47a1}
+/* TRENDS */
+.trends-card,.actions-card{background:#fff;border-radius:12px;box-shadow:0 1px 6px #0001;border:.5px solid #e0e0e0;padding:1.25rem;margin-bottom:1rem}
+.trow-item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:.5px solid #f0f0f0}
+.trow-item:last-child{border-bottom:none}
+.tdot{width:10px;height:10px;border-radius:50%;margin-top:4px;flex-shrink:0;box-shadow:0 0 0 3px #fff,0 0 0 4px currentColor}
+.dred{background:#e24b4a;color:#e24b4a}.damb{background:#ba7517;color:#ba7517}.dteal{background:#0f6e56;color:#0f6e56}
+.ttl{font-size:13px;font-weight:700;margin-bottom:4px;color:#1a1a18}
+.tbdy{font-size:12px;color:#555;line-height:1.6}
+.airow{background:#f8f9fa;border-radius:8px;padding:12px 16px;margin-bottom:10px;border-left:3px solid #1565c0}
+.aihd{font-size:13px;font-weight:700;margin-bottom:4px;color:#1a1a18}
+.aibd{font-size:12px;color:#555;line-height:1.6}
+/* EMPTY */
+.nores{display:none}
+/* ── STRUCTURED TREND CARD ─────────────────────── */
+.tc{border-radius:10px;border:1px solid #e8e8e8;padding:0;margin-bottom:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.tc:last-child{margin-bottom:0}
+.tc-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #f0f0f0}
+.tc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.tc-dot-red {background:#e24b4a}.tc-dot-amb{background:#ba7517}.tc-dot-teal{background:#0f6e56}
+.tc-title{font-size:13px;font-weight:700;color:#1a1a18;line-height:1.4;flex:1}
+.tc-body{padding:0}
+.tc-section{padding:9px 16px;border-bottom:1px solid #f8f8f8;display:flex;gap:10px;align-items:flex-start}
+.tc-section:last-child{border-bottom:none}
+.tc-section-label{font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;min-width:82px;padding-top:2px;flex-shrink:0}
+.tc-section-label-ev  {color:#1565c0}
+.tc-section-label-ins {color:#6a1b9a}
+.tc-section-label-imp {color:#c62828}
+.tc-section-label-pos {color:#1b5e20}
+.tc-section-content{font-size:12px;color:#444;line-height:1.65;flex:1}
+.tc-section-content ul{margin:0;padding-left:16px}
+.tc-section-content li{margin-bottom:3px}
+.tc-section-content li:last-child{margin-bottom:0}
+.tc-callout{margin:0;padding:8px 14px;font-size:12px;font-weight:600;line-height:1.5}
+.tc-callout-red  {background:#fff5f5;color:#a32d2d;border-top:1px solid #fce8e8}
+.tc-callout-teal {background:#f1f8e9;color:#1b5e20;border-top:1px solid #dcedc8}
+.tc-callout-amb  {background:#fff8e6;color:#7a4d00;border-top:1px solid #ffe0b2}
+.tc-tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px;margin-left:8px;vertical-align:middle;white-space:nowrap}
+.tc-tag-red {background:#fcebeb;color:#a32d2d}
+.tc-tag-teal{background:#e8f5e9;color:#1b5e20}
+.tc-tag-amb {background:#fff3e0;color:#e65100}
+.tc-highlight{background:#fffde7;color:#1a1a18;border-radius:3px;padding:0 3px;font-weight:700}
+.sprint-section-header{font-size:11px;font-weight:800;color:#1565c0;text-transform:uppercase;letter-spacing:.1em;margin:20px 0 12px;display:flex;align-items:center;gap:8px}
+.sprint-section-header::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,#1565c030,transparent)}
+/* ACTIVE METRIC HIGHLIGHT */
+.metric-active-label{font-size:10px;color:#1565c0;font-weight:700;margin-top:4px;display:none}
+.nores-box{display:none;flex-direction:column;align-items:center;justify-content:center;padding:3.5rem 1rem;gap:10px;background:#fff;border-radius:12px;margin:8px 0}
+.nores-box.visible{display:flex}
+.nores-box-icon{font-size:42px;opacity:.3}
+.nores-box-msg{font-size:15px;font-weight:700;color:#444}
+.nores-box-sub{font-size:13px;color:#aaa;text-align:center}
+.nores-box-btn{margin-top:4px;padding:7px 20px;border-radius:8px;font-size:12px;font-weight:700;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border:none;cursor:pointer;box-shadow:0 2px 8px rgba(21,101,192,.3)}
+.nores-box-btn:hover{opacity:.9}
+@media(max-width:700px){body{padding:1rem}.metrics{grid-template-columns:repeat(2,1fr)}}
+
+/* ── SEARCH BAR ─────────────────────────────────────── */
+.search-wrap{position:relative;flex:1;min-width:180px}
+.search-wrap input{width:100%;padding:6px 10px 6px 32px;border-radius:8px;font-size:12px;border:1.5px solid #e0ddd8;background:#f8f7f4;color:#333;outline:none;transition:border .15s}
+.search-wrap input:focus{border-color:#1565c0;background:#fff}
+.search-wrap .si{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#aaa;font-size:13px;pointer-events:none}
+/* ── EXPORT BUTTON ──────────────────────────────────── */
+.export-btn{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;background:linear-gradient(135deg,#1565c0,#1976d2);color:#fff;border:none;cursor:pointer;display:flex;align-items:center;gap:5px;box-shadow:0 2px 6px #1565c030;transition:all .2s}
+.export-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px #1565c040}
+/* ── FILTER ACTIVE LABEL ────────────────────────────── */
+.filter-label{display:none}
+/* ACTIVE FILTER BAR */
+.active-filter-bar{display:none;background:linear-gradient(135deg,#e8f1fb,#f0f7ff);border:1.5px solid #b3d0f5;border-radius:10px;padding:10px 14px;margin-bottom:10px;gap:10px;align-items:flex-start;flex-wrap:wrap}
+.active-filter-bar.visible{display:flex}
+.afb-left{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.afb-icon{font-size:15px}
+.afb-title{font-size:11px;font-weight:800;color:#1565c0;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
+.afb-chips{display:flex;gap:6px;flex-wrap:wrap;flex:1;align-items:center;min-width:0}
+.afb-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 8px;border-radius:20px;font-size:12px;font-weight:700;border:1.5px solid transparent;transition:all .15s}
+.afb-chip-assignee{background:#e8f5e9;color:#1b5e20;border-color:#a5d6a7}
+.afb-chip-priority{background:#fff3e0;color:#e65100;border-color:#ffcc80}
+.afb-chip-status{background:#ede8fb;color:#4a148c;border-color:#ce93d8}
+.afb-chip-category{background:#e3f2fd;color:#0d47a1;border-color:#90caf9}
+.afb-chip-search{background:#fce4ec;color:#880e4f;border-color:#f48fb1}
+.afb-chip-remove{cursor:pointer;opacity:.55;font-size:13px;line-height:1;margin-left:2px}
+.afb-chip-remove:hover{opacity:1}
+.afb-clear{margin-left:auto;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;background:#fff;color:#c0392b;border:1.5px solid #fcc;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.afb-clear:hover{background:#fee}
+/* INSIGHT CHIP */
+.insight-chip{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#1a237e,#1565c0);color:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 3px 12px rgba(21,101,192,.35);margin-bottom:14px}
+.insight-chip-icon{font-size:22px;flex-shrink:0}
+.insight-chip-label{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;opacity:.7;margin-bottom:3px}
+.insight-chip-text{font-size:13px;font-weight:500;line-height:1.55}
+/* ── CHARTS PANEL ───────────────────────────────────── */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.chart-card{background:#fff;border-radius:12px;box-shadow:0 1px 6px #0001;border:.5px solid #e0e0e0;padding:16px}
+.chart-card h3{font-size:13px;font-weight:700;color:#333;margin-bottom:12px}
+.chart-canvas-wrap{position:relative;height:260px}
+/* ── STICKY TABLE HEADER ────────────────────────────── */
+thead th{position:sticky;top:0;z-index:10;background:#f8f9fa}
+.table-wrap{overflow-x:auto;border-radius:12px;box-shadow:0 1px 6px #0001;border:.5px solid #e0e0e0;max-height:520px;overflow-y:auto}
+/* ── METRIC ACTIVE FILTER STATE ────────────────────── */
+.metric.active-filter{box-shadow:0 0 0 2.5px #1565c0,0 4px 16px #1565c030!important}
+.metric.active-filter .mlabel{color:#1565c0}
+/* ── TABLE SUMMARY ROW ──────────────────────────────── */
+.tbl-summary{font-size:12px;color:#666;padding:8px 12px;background:#f8f9fa;border-top:1px solid #eee;display:flex;align-items:center;gap:12px}
+@media(max-width:900px){.charts-grid{grid-template-columns:1fr}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div class="dash-header">
+  <h1>&#127959; Salesforce Team &mdash; Sprint 159 Review</h1>
+  <p class="subtitle">Ticket summary &mdash; Naveen Narisepalli &amp; Team &nbsp;&bull;&nbsp; Mar 24 &ndash; Apr 7, 2026</p>
+</div>
+
+<div class="afilter">
+  <p class="slabel" style="margin-bottom:8px">&#128101; Filter by Assignee</p>
+  <div class="arow">
+    <button class="abtn active" data-who="All" onclick="setAssignee('All',this)"><span class="acolor" style="background:#444"></span>All Team</button>
+    <button class="abtn" data-who="Ajay" onclick="setAssignee('Ajay',this)"><span class="acolor" style="background:#0f6e56"></span>Ajay Kaushal</button>
+    <button class="abtn" data-who="Amanulla" onclick="setAssignee('Amanulla',this)"><span class="acolor" style="background:#6b3fa0"></span>Shaik Amanulla</button>
+    <button class="abtn" data-who="Naveen" onclick="setAssignee('Naveen',this)"><span class="acolor" style="background:#1a6fc4"></span>Naveen Narisepalli</button>
+    <button class="abtn" data-who="Garima" onclick="setAssignee('Garima',this)"><span class="acolor" style="background:#b55a1a"></span>Garima Vardhan</button>
+  </div>
+</div>
+
+<p class="slabel" id="gl">&#128202; Sprint at a Glance &mdash; All Team</p>
+<div class="metrics">
+  <div class="metric m-total" onclick="filterByStatus('__total__')" title="Click to reset status filter">
+    <p class="mlabel">&#127937; Total Tickets</p>
+    <p class="mnum" id="mt">0</p>
+    <p class="msub">Mar 24 &ndash; Apr 7, 2026</p>
+    <p class="mclick">Click to show all</p>
+  </div>
+  <div class="metric m-done" onclick="filterByStatus('Done')" title="Click to filter by Done">
+    <p class="mlabel">&#9989; Done / Resolved</p>
+    <p class="mnum" id="md">0</p>
+    <p class="msub" id="mds">0% closure rate</p>
+    <p class="mclick">Click to filter</p>
+  </div>
+  <div class="metric m-inprog" onclick="filterByStatus('In Progress')" title="Click to filter by In Progress">
+    <p class="mlabel">&#9654; In Progress / Active</p>
+    <p class="mnum" id="mi">0</p>
+    <p class="msub">Active this sprint</p>
+    <p class="mclick">Click to filter</p>
+  </div>
+  <div class="metric m-pend" onclick="filterByStatus('__pending__')" title="Click to filter pending tickets">
+    <p class="mlabel">&#9711; Needs Review / To Do</p>
+    <p class="mnum" id="mp">0</p>
+    <p class="msub">Pending validation or start</p>
+    <p class="mclick">Click to filter</p>
+  </div>
+</div>
+
+<!-- FILTER BAR with Search + Export -->
+<div class="filterbar">
+  <label>&#128270;</label>
+  <div class="search-wrap">
+    <span class="si">&#128269;</span>
+    <input type="text" id="f-search" placeholder="Search ticket ID, summary, category…" oninput="applyFilters()"/>
+  </div>
+  <select class="fsel" id="f-priority" onchange="applyFilters()">
+    <option value="">All Priorities</option>
+    <option value="Blocker">Blocker</option>
+    <option value="Critical">Critical</option>
+    <option value="Major">Major</option>
+    <option value="Unassigned">Unassigned</option>
+  </select>
+  <select class="fsel" id="f-status" onchange="applyFilters()">
+    <option value="">All Statuses</option>
+    <option value="Awaiting Feedback">Awaiting Feedback</option>
+    <option value="Awaiting Inputs">Awaiting Inputs</option>
+    <option value="Cancelled">Cancelled</option>
+    <option value="Done">Done</option>
+    <option value="In Progress">In Progress</option>
+    <option value="Needs Review">Needs Review</option>
+    <option value="Ready to Deploy">Ready to Deploy</option>
+    <option value="To Do">To Do</option>
+  </select>
+  <select class="fsel" id="f-category" onchange="applyFilters()">
+    <option value="">All Categories</option>
+    <option value="Access / admin">Access / admin</option>
+    <option value="Access / guidance">Access / guidance</option>
+    <option value="Access / limitation">Access / limitation</option>
+    <option value="Access provisioning">Access provisioning</option>
+    <option value="Account admin">Account admin</option>
+    <option value="Audit / access">Audit / access</option>
+    <option value="Automation bug">Automation bug</option>
+    <option value="Automation enhancement">Automation enhancement</option>
+    <option value="Bid Excel bug">Bid Excel bug</option>
+    <option value="Bid page bug">Bid page bug</option>
+    <option value="Data correction">Data correction</option>
+    <option value="Data duplication bug">Data duplication bug</option>
+    <option value="Data sync bug">Data sync bug</option>
+    <option value="Data upload">Data upload</option>
+    <option value="Data/calc bug">Data/calc bug</option>
+    <option value="Email logic fix">Email logic fix</option>
+    <option value="Field enhancement">Field enhancement</option>
+    <option value="Field-level security">Field-level security</option>
+    <option value="Flow → Apex">Flow → Apex</option>
+    <option value="Forecast admin">Forecast admin</option>
+    <option value="IC Invoicing epic">IC Invoicing epic</option>
+    <option value="IC Rev Rec epic">IC Rev Rec epic</option>
+    <option value="Infra cleanup">Infra cleanup</option>
+    <option value="Invoice bug">Invoice bug</option>
+    <option value="Lambda / infra">Lambda / infra</option>
+    <option value="License admin">License admin</option>
+    <option value="MRA COGS epic">MRA COGS epic</option>
+    <option value="MRA Rev Rec">MRA Rev Rec</option>
+    <option value="MRA Rev Rec epic">MRA Rev Rec epic</option>
+    <option value="OneSolve / GL">OneSolve / GL</option>
+    <option value="OneSolve UAT">OneSolve UAT</option>
+    <option value="OneSolve cutover">OneSolve cutover</option>
+    <option value="OneSolve deployment">OneSolve deployment</option>
+    <option value="OneSolve enablement">OneSolve enablement</option>
+    <option value="OneSolve integration">OneSolve integration</option>
+    <option value="OneSolve migration">OneSolve migration</option>
+    <option value="PO management">PO management</option>
+    <option value="Permissions">Permissions</option>
+    <option value="Pricebook config">Pricebook config</option>
+    <option value="Reference data update">Reference data update</option>
+    <option value="Tool request">Tool request</option>
+    <option value="Vendor creation">Vendor creation</option>
+    <option value="Vendor management">Vendor management</option>
+    <option value="Vendor mgmt bug">Vendor mgmt bug</option>
+  </select>
+  <button class="reset-btn" onclick="resetFilters()">&#10005; Reset</button>
+  <button class="export-btn" onclick="exportToExcel()">&#11123; Export CSV</button>
+</div>
+<!-- ACTIVE FILTER BAR -->
+<div class="active-filter-bar" id="active-filter-bar">
+  <div class="afb-left">
+    <span class="afb-icon">&#128269;</span>
+    <span class="afb-title">Active&nbsp;Filters</span>
+  </div>
+  <div class="afb-chips" id="afb-chips"></div>
+  <button class="afb-clear" onclick="resetFilters()">&#10005;&nbsp;Clear all</button>
+</div>
+
+<!-- TABS -->
+<div class="tabrow">
+  <button class="tab active" onclick="ST('tickets',this)">&#128196; Ticket Log</button>
+  <button class="tab" onclick="ST('trends',this)">&#128200; Trends &amp; Patterns</button>
+  <button class="tab" onclick="ST('actions',this)">&#9889; Action Items</button>
+  <button class="tab" onclick="ST('charts',this)">&#128202; Charts</button>
+</div>
+
+<!-- TICKETS PANEL -->
+<!-- TICKETS PANEL -->
+<div id="tickets" class="panel active">
+<div class="tbl-summary" id="tbl-summary">Showing 77 tickets</div>
+<div class="table-wrap">
+<table>
+<thead><tr>
+  <th style="width:80px">Ticket</th>
+  <th style="width:90px">Priority</th>
+  <th>Summary</th>
+  <th style="width:120px">Status</th>
+  <th style="width:100px">Assignee</th>
+  <th style="width:110px">Category</th>
+</tr></thead>
+<tbody id="ticket-tbody">
+<tr class="pg-row" data-group="Blocker"><td colspan="6" style="background:linear-gradient(90deg,#fff0f0,#fff0f0cc);color:#c0392b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:6px 12px;border-left:3px solid #c0392b">🔴 Blocker</td></tr>
+<tr class="trow" data-priority="Blocker" data-assignee="Naveen" data-status="Done" data-category="Data upload" data-ticket="SF-929">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-929" target="_blank" rel="noopener">SF-929</a></td>
+  <td><span class="pbadge" style="background:#fff0f0;color:#c0392b;border:1px solid #c0392b33">Blocker</span></td>
+  <td class="summary-cell">March 2026 MRA Previously Recognized Revenue Upload. Same-day upload requested by Chris Dunster (3/31/26 date) to unblock revenue forecast. Completed by Naveen Apr 2 with log attached.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Data upload</span></td>
+</tr>
+<tr class="trow" data-priority="Blocker" data-assignee="Naveen" data-status="Done" data-category="Data upload" data-ticket="SF-928">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-928" target="_blank" rel="noopener">SF-928</a></td>
+  <td><span class="pbadge" style="background:#fff0f0;color:#c0392b;border:1px solid #c0392b33">Blocker</span></td>
+  <td class="summary-cell">April FX Rates + March Amount at Time of Booking (USD Historical). Same-day completion requested. Naveen completed and attached log Apr 2.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Data upload</span></td>
+</tr>
+<tr class="trow" data-priority="Blocker" data-assignee="Amanulla" data-status="Needs Review" data-category="Vendor mgmt bug" data-ticket="SF-902">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-902" target="_blank" rel="noopener">SF-902</a></td>
+  <td><span class="pbadge" style="background:#fff0f0;color:#c0392b;border:1px solid #c0392b33">Blocker</span></td>
+  <td class="summary-cell">Vendor Management Task malfunction for PJ-Z260200175-001. Null object error on Add Quota Details, no SHG Panel bidding subtask auto-created. Routed to Amanulla. Related to <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-927" target="_blank" rel="noopener">SF-927</a>.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#6b3fa0">Am</span><span>Amanulla</span></div></td>
+  <td><span class="catbadge">Vendor mgmt bug</span></td>
+</tr>
+<tr class="pg-row" data-group="Critical"><td colspan="6" style="background:linear-gradient(90deg,#fff6ee,#fff6eecc);color:#e67e22;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:6px 12px;border-left:3px solid #e67e22">🟠 Critical</td></tr>
+<tr class="trow" data-priority="Critical" data-assignee="Naveen" data-status="Cancelled" data-category="Invoice bug" data-ticket="SF-931">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-931" target="_blank" rel="noopener">SF-931</a></td>
+  <td><span class="pbadge" style="background:#fff6ee;color:#e67e22;border:1px solid #e67e2233">Critical</span></td>
+  <td class="summary-cell"><span class="etag">MRA Invoicing</span>Billing Engine error on project Z260300010-001 — "No Invoice Details after running through all Order Products." Reporter cancelled Apr 6 and sent invoice manually.</td>
+  <td><span class="sbadge" style="background:#f0f0f0;color:#666">✕ Cancelled</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Invoice bug</span></td>
+</tr>
+<tr class="trow" data-priority="Critical" data-assignee="Amanulla" data-status="To Do" data-category="Field enhancement" data-ticket="SF-930">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-930" target="_blank" rel="noopener">SF-930</a></td>
+  <td><span class="pbadge" style="background:#fff6ee;color:#e67e22;border:1px solid #e67e2233">Critical</span></td>
+  <td class="summary-cell">Add "Project is a Tracker" (Yes/No, required) field on LS Quant + Qual project records, below Service-Type. High priority — sales/marketing campaign launching soon. Sprint 160.</td>
+  <td><span class="sbadge" style="background:#fff3d4;color:#7a4d00">○ To Do</span></td>
+  <td><div class="acell"><span class="adot" style="background:#6b3fa0">Am</span><span>Amanulla</span></div></td>
+  <td><span class="catbadge">Field enhancement</span></td>
+</tr>
+<tr class="pg-row" data-group="Major"><td colspan="6" style="background:linear-gradient(90deg,#fffbee,#fffbeecc);color:#d4a017;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:6px 12px;border-left:3px solid #d4a017">🟡 Major</td></tr>
+<tr class="trow" data-priority="Major" data-assignee="Ajay" data-status="Done" data-category="Flow → Apex" data-ticket="SF-887">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-887" target="_blank" rel="noopener">SF-887</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell"><span class="etag">MRA Invoicing</span>Optimize — Invoice: Upsert Invoice for Account. 3 flows consolidated into 1 Apex class. Bulk processing, centralized logic, better error handling. Testing passed Mar 30.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#0f6e56">Aj</span><span>Ajay</span></div></td>
+  <td><span class="catbadge">Flow → Apex</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Ajay" data-status="Done" data-category="Flow → Apex" data-ticket="SF-888">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-888" target="_blank" rel="noopener">SF-888</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell"><span class="etag">MRA Invoicing</span>Optimize — Order Control: Get Billing and Shipping Contact from Inputs. Flow-to-Apex conversion. Testing done by Ajay Mar 30.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#0f6e56">Aj</span><span>Ajay</span></div></td>
+  <td><span class="catbadge">Flow → Apex</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Ajay" data-status="Done" data-category="Flow → Apex" data-ticket="SF-889">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-889" target="_blank" rel="noopener">SF-889</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell"><span class="etag">MRA Invoicing</span>Optimize — Transaction Definition: Get TD from Project or Opportunity Location. Flow-to-Apex conversion. Testing passed Mar 30.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#0f6e56">Aj</span><span>Ajay</span></div></td>
+  <td><span class="catbadge">Flow → Apex</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Ajay" data-status="Done" data-category="Flow → Apex" data-ticket="SF-890">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-890" target="_blank" rel="noopener">SF-890</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell"><span class="etag">MRA Invoicing</span>Make flow ready for Prod — Billing Engine: SHG Project Invoice Screenflow. UAT sign-off from Dustin Apr 7. Discount edge case fixed. Invoice gen time improved 7+ min → ~5 sec.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#0f6e56">Aj</span><span>Ajay</span></div></td>
+  <td><span class="catbadge">Flow → Apex</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Naveen" data-status="Done" data-category="Invoice bug" data-ticket="SF-897">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-897" target="_blank" rel="noopener">SF-897</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell"><span class="etag">MRA Invoicing</span>"United States" appearing below client address on invoice for project Z260300091. Fixed same day. Confirmed by reporter Mar 27.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Invoice bug</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Amanulla" data-status="Awaiting Feedback" data-category="Data sync bug" data-ticket="SF-923">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-923" target="_blank" rel="noopener">SF-923</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell">Quoted Specs did not sync for PJ-Z260300429-001 — 30+ lines missing. ~$660K in uncounted sub-project revenue. Amanulla fixed; revenue down to ~$550K. Finance reporting gap identified.</td>
+  <td><span class="sbadge" style="background:#fff8e6;color:#7a5c00">⏳ Awaiting Feedback</span></td>
+  <td><div class="acell"><span class="adot" style="background:#6b3fa0">Am</span><span>Amanulla</span></div></td>
+  <td><span class="catbadge">Data sync bug</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Amanulla" data-status="In Progress" data-category="Data/calc bug" data-ticket="SF-914">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-914" target="_blank" rel="noopener">SF-914</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell">Negative amounts on cancelled projects — Transaction Detail resetting to negative instead of $0. First noticed Mar 10. Affecting monthly revenue/bookings. Amanulla started investigation Apr 9.</td>
+  <td><span class="sbadge" style="background:#d4eeff;color:#0550ae">⟳ In Progress</span></td>
+  <td><div class="acell"><span class="adot" style="background:#6b3fa0">Am</span><span>Amanulla</span></div></td>
+  <td><span class="catbadge">Data/calc bug</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Amanulla" data-status="To Do" data-category="Automation enhancement" data-ticket="SF-916">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-916" target="_blank" rel="noopener">SF-916</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell">MRA Project Cancellation V2.0 — auto-zero out Sub Project Revenue field when a project is cancelled. Sprint 160.</td>
+  <td><span class="sbadge" style="background:#fff3d4;color:#7a4d00">○ To Do</span></td>
+  <td><div class="acell"><span class="adot" style="background:#6b3fa0">Am</span><span>Amanulla</span></div></td>
+  <td><span class="catbadge">Automation enhancement</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Amanulla" data-status="To Do" data-category="Automation bug" data-ticket="SF-910">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-910" target="_blank" rel="noopener">SF-910</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell">MRA Project Specs not piping to all sub-projects when alerted. FPS details only go to latest project (e.g. 002 only). PMs manually delete unwanted lines. Sprint 160.</td>
+  <td><span class="sbadge" style="background:#fff3d4;color:#7a4d00">○ To Do</span></td>
+  <td><div class="acell"><span class="adot" style="background:#6b3fa0">Am</span><span>Amanulla</span></div></td>
+  <td><span class="catbadge">Automation bug</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Amanulla" data-status="In Progress" data-category="Vendor mgmt bug" data-ticket="SF-927">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-927" target="_blank" rel="noopener">SF-927</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell">Error adding SMQD to Vendor Mgmt for PJ-Z260200175-001. "Attempt to de-reference a null object." Root cause: missing Primary_Task_Country_Detail__c and Task Hub ID not tagged. Investigation ongoing.</td>
+  <td><span class="sbadge" style="background:#d4eeff;color:#0550ae">⟳ In Progress</span></td>
+  <td><div class="acell"><span class="adot" style="background:#6b3fa0">Am</span><span>Amanulla</span></div></td>
+  <td><span class="catbadge">Vendor mgmt bug</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Amanulla" data-status="Awaiting Feedback" data-category="Pricebook config" data-ticket="SF-965">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-965" target="_blank" rel="noopener">SF-965</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell">Legacy Configurator — Update Pricebook Entries for Other Fees (revert due to commercial decision). Updated in sandbox Apr 9. Awaiting Allie DaCar verification.</td>
+  <td><span class="sbadge" style="background:#fff8e6;color:#7a5c00">⏳ Awaiting Feedback</span></td>
+  <td><div class="acell"><span class="adot" style="background:#6b3fa0">Am</span><span>Amanulla</span></div></td>
+  <td><span class="catbadge">Pricebook config</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Naveen" data-status="Done" data-category="License admin" data-ticket="SF-904">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-904" target="_blank" rel="noopener">SF-904</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell">Conga License Reassignments. Licenses reduced 149 → 90. Naveen redistributed 9 licenses to priority users (exception: Francesea). Ken confirmed reallocation is license-neutral. Closed Apr 9.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">License admin</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Naveen" data-status="Done" data-category="Data correction" data-ticket="SF-912">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-912" target="_blank" rel="noopener">SF-912</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell">Forecast Category Update — set cancelled opportunities to Closed. Was causing % to plan discrepancy. Naveen updated all records from report with log. Resolved Apr 6.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Data correction</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Naveen" data-status="To Do" data-category="Field-level security" data-ticket="SF-915">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-915" target="_blank" rel="noopener">SF-915</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell">Amount at Time of Bookings field — restrict edit access to SF Admins + Chris, Sal, Tom, Katie only. Requires flow adjustment as field is also used in automation. Sprint 160.</td>
+  <td><span class="sbadge" style="background:#fff3d4;color:#7a4d00">○ To Do</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Field-level security</span></td>
+</tr>
+<tr class="trow" data-priority="Major" data-assignee="Naveen" data-status="Needs Review" data-category="Bid page bug" data-ticket="SF-921">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-921" target="_blank" rel="noopener">SF-921</a></td>
+  <td><span class="pbadge" style="background:#fffbee;color:#d4a017;border:1px solid #d4a01733">Major</span></td>
+  <td class="summary-cell">Unable to edit Final Bid Quote page on Z260100328-002. Screenshot provided. No investigation update this sprint.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Bid page bug</span></td>
+</tr>
+<tr class="pg-row" data-group="Unassigned"><td colspan="6" style="background:linear-gradient(90deg,#f4f5f7,#f4f5f7cc);color:#8e9aaf;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:6px 12px;border-left:3px solid #8e9aaf">⚪ Unassigned</td></tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Ajay" data-status="To Do" data-category="Email logic fix" data-ticket="SF-898">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-898" target="_blank" rel="noopener">SF-898</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">MRA Invoicing</span>Update invoice email distribution logic to include all populated email fields (Email, Destination 1 & 2) without overriding. Fixes inconsistent PM/AP delivery. Sprint 160.</td>
+  <td><span class="sbadge" style="background:#fff3d4;color:#7a4d00">○ To Do</span></td>
+  <td><div class="acell"><span class="adot" style="background:#0f6e56">Aj</span><span>Ajay</span></div></td>
+  <td><span class="catbadge">Email logic fix</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Ajay" data-status="In Progress" data-category="OneSolve enablement" data-ticket="SF-959">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-959" target="_blank" rel="noopener">SF-959</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-07-S1</span>Workato Training & Onboarding for Ajay + Ramesh. Ajay started Workato Academy Foundation Level 1; assigned to PROD recipe deletion task. Training in progress as of Apr 7.</td>
+  <td><span class="sbadge" style="background:#d4eeff;color:#0550ae">⟳ In Progress</span></td>
+  <td><div class="acell"><span class="adot" style="background:#0f6e56">Aj</span><span>Ajay</span></div></td>
+  <td><span class="catbadge">OneSolve enablement</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Amanulla" data-status="Awaiting Feedback" data-category="Data duplication bug" data-ticket="SF-891">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-891" target="_blank" rel="noopener">SF-891</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">SHG lines duplicating in SF for Z240900623-008 — updating 1 vendor line updates both. Amanulla fixed Mar 31. Awaiting reporter confirmation.</td>
+  <td><span class="sbadge" style="background:#fff8e6;color:#7a5c00">⏳ Awaiting Feedback</span></td>
+  <td><div class="acell"><span class="adot" style="background:#6b3fa0">Am</span><span>Amanulla</span></div></td>
+  <td><span class="catbadge">Data duplication bug</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Amanulla" data-status="Awaiting Inputs" data-category="Access provisioning" data-ticket="SF-893">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-893" target="_blank" rel="noopener">SF-893</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">SF Access request for Priyanka Naik (SHG + IC instances). Amanulla requested mirror user details from Katie Scott. Awaiting inputs.</td>
+  <td><span class="sbadge" style="background:#fff8e6;color:#7a5c00">⏳ Awaiting Inputs</span></td>
+  <td><div class="acell"><span class="adot" style="background:#6b3fa0">Am</span><span>Amanulla</span></div></td>
+  <td><span class="catbadge">Access provisioning</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Amanulla" data-status="Done" data-category="Vendor creation" data-ticket="SF-896">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-896" target="_blank" rel="noopener">SF-896</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Create new vendor record: Emma Spring, GBP, Active, V03617, <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="244f4d500a514f574156524d4741644349454d480a474b49">[email&#160;protected]</a>, UK address. Amanulla created and shared record link Mar 26.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#6b3fa0">Am</span><span>Amanulla</span></div></td>
+  <td><span class="catbadge">Vendor creation</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Amanulla" data-status="Ready to Deploy" data-category="Reference data update" data-ticket="SF-924">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-924" target="_blank" rel="noopener">SF-924</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Bulk update: Profession + Specialty name shortening (80-char limit for Project Spec names). Implemented in sandbox Apr 9. Ready to Deploy. Blocks AIM-680.</td>
+  <td><span class="sbadge" style="background:#d6f0fb;color:#0c447c">⬆ Ready to Deploy</span></td>
+  <td><div class="acell"><span class="adot" style="background:#6b3fa0">Am</span><span>Amanulla</span></div></td>
+  <td><span class="catbadge">Reference data update</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Amanulla" data-status="Needs Review" data-category="Access provisioning" data-ticket="SF-926">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-926" target="_blank" rel="noopener">SF-926</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Salesforce access request for Soumya Ranjan Behera — survey routing, gateway configs, client integrations support.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#6b3fa0">Am</span><span>Amanulla</span></div></td>
+  <td><span class="catbadge">Access provisioning</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="Vendor management" data-ticket="SF-892">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-892" target="_blank" rel="noopener">SF-892</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Archive inactive/non-compliant fieldwork vendors. List compiled by Prithvi Gowda. Sprint 160.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Vendor management</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Done" data-category="Account admin" data-ticket="SF-894">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-894" target="_blank" rel="noopener">SF-894</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Convert IC Account to SHG Account. Naveen confirmed account was already converted to SHG on Mar 30.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Account admin</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Done" data-category="Infra cleanup" data-ticket="SF-895">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-895" target="_blank" rel="noopener">SF-895</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Delete unused sandboxes not accessed in 90+ days (PPlanDev, AmanDev, NaveenDev). All three deleted by Naveen Apr 6.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Infra cleanup</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Done" data-category="Access / admin" data-ticket="SF-899">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-899" target="_blank" rel="noopener">SF-899</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Switch report ownership from James Ingram (left company) to Sal Brucculeri. Naveen provided folder edit access. Confirmed working by Sal Mar 30.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Access / admin</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="MRA Rev Rec" data-ticket="SF-900">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-900" target="_blank" rel="noopener">SF-900</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">MRA Rev Rec</span>MRA — Rev Rec sub-task under <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-908" target="_blank" rel="noopener">SF-908</a> epic. No description added yet. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">MRA Rev Rec</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="Lambda / infra" data-ticket="SF-903">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-903" target="_blank" rel="noopener">SF-903</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Investigate SF Lambda alerts — March 2026. Cloned from PS-7888 (Arpan). In Ready for Development sprint.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Lambda / infra</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="IC Rev Rec epic" data-ticket="SF-905">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-905" target="_blank" rel="noopener">SF-905</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">Epic</span>InCrowd — Rev Rec. 8 child stories (<a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-668" target="_blank" rel="noopener">SF-668</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-683" target="_blank" rel="noopener">SF-683</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-694" target="_blank" rel="noopener">SF-694</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-709" target="_blank" rel="noopener">SF-709</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-721" target="_blank" rel="noopener">SF-721</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-734" target="_blank" rel="noopener">SF-734</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-739" target="_blank" rel="noopener">SF-739</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-790" target="_blank" rel="noopener">SF-790</a>). Mix of Awaiting Inputs, Cancelled, To Do. Blocked on business inputs from Marquis Jones.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">IC Rev Rec epic</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="In Progress" data-category="IC Invoicing epic" data-ticket="SF-906">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-906" target="_blank" rel="noopener">SF-906</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">Epic</span>InCrowd — Invoicing. IC Invoicing activation in progress (<a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-732" target="_blank" rel="noopener">SF-732</a>). <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-985" target="_blank" rel="noopener">SF-985</a> (identify IC invoicing flow) In Progress. Sprint 160.</td>
+  <td><span class="sbadge" style="background:#d4eeff;color:#0550ae">⟳ In Progress</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">IC Invoicing epic</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="MRA COGS epic" data-ticket="SF-907">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-907" target="_blank" rel="noopener">SF-907</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">Epic</span>MRA — COGS. 5 child stories (<a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-669" target="_blank" rel="noopener">SF-669</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-693" target="_blank" rel="noopener">SF-693</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-722" target="_blank" rel="noopener">SF-722</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-736" target="_blank" rel="noopener">SF-736</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-737" target="_blank" rel="noopener">SF-737</a>). All Awaiting Inputs. Blocked on business inputs from Marquis Jones.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">MRA COGS epic</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="To Do" data-category="MRA Rev Rec epic" data-ticket="SF-908">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-908" target="_blank" rel="noopener">SF-908</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">Epic</span>MRA — Rev Rec. Parent epic for <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-706" target="_blank" rel="noopener">SF-706</a> (Awaiting Inputs), <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-733" target="_blank" rel="noopener">SF-733</a> (Done), <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-900" target="_blank" rel="noopener">SF-900</a> (Needs Review), <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-909" target="_blank" rel="noopener">SF-909</a> (Needs Review). To Do.</td>
+  <td><span class="sbadge" style="background:#fff3d4;color:#7a4d00">○ To Do</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">MRA Rev Rec epic</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="MRA Rev Rec" data-ticket="SF-909">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-909" target="_blank" rel="noopener">SF-909</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">MRA Rev Rec</span>Test task under <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-908" target="_blank" rel="noopener">SF-908</a> (MRA Rev Rec epic). No description added. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">MRA Rev Rec</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Done" data-category="Access / guidance" data-ticket="SF-911">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-911" target="_blank" rel="noopener">SF-911</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Priyanka Naik unable to access Life Science Feasibility Requests. Allie DaCar guided user through correct SF navigation path. Resolved Mar 31.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Access / guidance</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="Bid Excel bug" data-ticket="SF-913">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-913" target="_blank" rel="noopener">SF-913</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Urgent — unable to generate bid Excel in Salesforce. Screenshot provided by Priyanka Naik Mar 30. No resolution update this sprint.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Bid Excel bug</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="To Do" data-category="Permissions" data-ticket="SF-917">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-917" target="_blank" rel="noopener">SF-917</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Project Cancellation permission set for LS team leaders (Erica, Christine, Jordan, Matt, Fiona). Create permission set, test LS cancellation, deploy to prod. Sprint 160.</td>
+  <td><span class="sbadge" style="background:#fff3d4;color:#7a4d00">○ To Do</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Permissions</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Done" data-category="Forecast admin" data-ticket="SF-919">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-919" target="_blank" rel="noopener">SF-919</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Forecast hierarchy update — remove James, move all his reps to Sal. Completed by Naveen Apr 3.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Forecast admin</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Cancelled" data-category="Access / limitation" data-ticket="SF-920">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-920" target="_blank" rel="noopener">SF-920</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">List Match: LS team leaders need inline editing of Expected Revenue + Fieldwork Dates. SF inline editing limitations on currency/date fields. Naveen recommended report-level editing. Chris accepted.</td>
+  <td><span class="sbadge" style="background:#f0f0f0;color:#666">✕ Cancelled</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Access / limitation</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="Tool request" data-ticket="SF-922">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-922" target="_blank" rel="noopener">SF-922</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Microsoft 365 Copilot request for Chris Dunster to support 8+ weekly integration meetings. Awaiting approval decision.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Tool request</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Cancelled" data-category="Account admin" data-ticket="SF-925">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-925" target="_blank" rel="noopener">SF-925</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Merge 2 Accounts request. Sal Brucculeri cancelled Apr 7 — accounts to remain separate.</td>
+  <td><span class="sbadge" style="background:#f0f0f0;color:#666">✕ Cancelled</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Account admin</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve migration" data-ticket="SF-932">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-932" target="_blank" rel="noopener">SF-932</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-01 Epic</span>Workspace Migration to New Workato Environment. 9 child stories (<a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-939" target="_blank" rel="noopener">SF-939</a> to <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-948" target="_blank" rel="noopener">SF-948</a>). Garima leading baseline + dependency map (In Progress). Remaining Needs Review. Not in current Phase 2 scope.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve migration</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve deployment" data-ticket="SF-933">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-933" target="_blank" rel="noopener">SF-933</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-02 Epic</span>Environment Structure & Deployment Pipeline. 3-project folder: Dev (SB→SB), UAT (Prod→SB), Prod (Prod→Prod). Child stories: <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-949" target="_blank" rel="noopener">SF-949</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-950" target="_blank" rel="noopener">SF-950</a> Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve deployment</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve integration" data-ticket="SF-934">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-934" target="_blank" rel="noopener">SF-934</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-03 Epic</span>MRA Invoicing Optimization (Workato — remove Wait nodes). <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-951" target="_blank" rel="noopener">SF-951</a> Done. <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-952" target="_blank" rel="noopener">SF-952</a> (Workato-side validation) Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve integration</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve / GL" data-ticket="SF-935">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-935" target="_blank" rel="noopener">SF-935</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-04 Epic</span>GL Batch & Revenue Recognition Optimization. BLOCKED — sync frequency decision pending Scott Baiocchi (daily vs weekly vs twice-monthly). Child stories: <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-953" target="_blank" rel="noopener">SF-953</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-954" target="_blank" rel="noopener">SF-954</a>.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve / GL</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve cutover" data-ticket="SF-936">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-936" target="_blank" rel="noopener">SF-936</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-05 Epic</span>Platform Events & Production Cutover Safety. BLOCKED — 14,000+ events queued, 24-hr replay window NEVER tested. Cutover blocked until <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-955" target="_blank" rel="noopener">SF-955</a> complete. Child: <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-956" target="_blank" rel="noopener">SF-956</a>.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve cutover</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve UAT" data-ticket="SF-937">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-937" target="_blank" rel="noopener">SF-937</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-06 Epic</span>UAT Framework & Acceptance Criteria. BLOCKED — revised SOW needed from Scott Baiocchi + Marquis Jones. Child stories: <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-957" target="_blank" rel="noopener">SF-957</a>, <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-958" target="_blank" rel="noopener">SF-958</a>.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve UAT</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve enablement" data-ticket="SF-938">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-938" target="_blank" rel="noopener">SF-938</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-07 Epic</span>Offshore Team Enablement — Ajay + Ramesh on Workato. <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-959" target="_blank" rel="noopener">SF-959</a> (training, In Progress). <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-960" target="_blank" rel="noopener">SF-960</a> (daily cadence, Needs Review).</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve enablement</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve migration" data-ticket="SF-942">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-942" target="_blank" rel="noopener">SF-942</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-01-S3</span>New Workspace Provisioning & Connection Setup. 3-project structure, all connections tested. No recipes imported until all pass. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve migration</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve migration" data-ticket="SF-943">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-943" target="_blank" rel="noopener">SF-943</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-01-S4</span>Wave 1 Dev Migration: Non-Critical Recipes (Anaplan + Tableau). Export, import into Dev project, connections remapped, outputs verified. Old recipes stopped only after verification. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve migration</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve migration" data-ticket="SF-944">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-944" target="_blank" rel="noopener">SF-944</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-01-S5</span>Wave 2 Dev Migration: Sub-Flow & Utility Recipes. Shared sub-flows migrated before parent recipes to avoid broken dependencies. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve migration</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve migration" data-ticket="SF-945">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-945" target="_blank" rel="noopener">SF-945</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-01-S6</span>Wave 3 Dev Migration: Core SF→Intacct Recipes (MRA invoicing, GL batch, revenue recognition). Parallel operation required, job log parity check before stopping old workspace. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve migration</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve migration" data-ticket="SF-946">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-946" target="_blank" rel="noopener">SF-946</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-01-S7</span>UAT Environment Migration (All Waves). All waves replicated in UAT/Test project (SF Prod → Intacct Sandbox), formal UAT run, acceptance criteria from revised SOW applied. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve migration</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve cutover" data-ticket="SF-947">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-947" target="_blank" rel="noopener">SF-947</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-01-S8</span>Production Cutover. Maintenance window scheduled, production recipes imported, connections verified. BLOCKED on <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-955" target="_blank" rel="noopener">SF-955</a> (platform event recovery test must complete first). Rollback plan required. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve cutover</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve migration" data-ticket="SF-948">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-948" target="_blank" rel="noopener">SF-948</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-01-S9</span>Router Recipe Retirement & Old Workspace Decommission. Run only after 1-2 weeks prod stability post-cutover. Router stopped, old workspace archived after 30-day hold. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve migration</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve deployment" data-ticket="SF-949">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-949" target="_blank" rel="noopener">SF-949</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-02-S1</span>Sand-to-Sand Project Setup in Current Workspace. Recipes exported/imported, connections remapped to sandbox equivalents. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve deployment</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve deployment" data-ticket="SF-950">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-950" target="_blank" rel="noopener">SF-950</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-02-S2</span>Deployment Pipeline: Export/Import Process Documentation. Step-by-step guide, promotion gates, DoD update, training for Ajay + Ramesh. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve deployment</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Done" data-category="OneSolve integration" data-ticket="SF-951">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-951" target="_blank" rel="noopener">SF-951</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-03-S1</span>Confirm SF Side Wait Node Changes Complete (OneSolve). Naveen confirmed all wait nodes removed Apr 9. Garima requested list of updated flows for Workato-side testing.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve integration</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve integration" data-ticket="SF-952">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-952" target="_blank" rel="noopener">SF-952</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-03-S2</span>MRA Invoicing Recipe Validation post Wait Node changes (Workato side). End-to-end validation once SF side confirmed. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve integration</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve / GL" data-ticket="SF-953">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-953" target="_blank" rel="noopener">SF-953</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-04-S1</span>Confirm GL Batch Sync Frequency Decision. Awaiting written confirmation from Scott Baiocchi (daily/weekly/twice-monthly). Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve / GL</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve / GL" data-ticket="SF-954">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-954" target="_blank" rel="noopener">SF-954</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-04-S2</span>GL Batch Recipe Optimization. Blocked on <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-953" target="_blank" rel="noopener">SF-953</a> sync frequency decision. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve / GL</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve cutover" data-ticket="SF-955">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-955" target="_blank" rel="noopener">SF-955</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-05-S1</span>Platform Event Recovery Window Test. Stop trigger → publish events → wait ~2 hrs → restart → verify. Blocks production cutover <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-947" target="_blank" rel="noopener">SF-947</a>. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve cutover</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve cutover" data-ticket="SF-956">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-956" target="_blank" rel="noopener">SF-956</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-05-S2</span>Missed Event Recovery Recipe — design replay mechanism for Platform Events missed during cutover window. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve cutover</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve UAT" data-ticket="SF-957">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-957" target="_blank" rel="noopener">SF-957</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-06-S1</span>Obtain and Review Revised SOW from Scott Baiocchi + Marquis Jones. BLOCKED. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve UAT</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve UAT" data-ticket="SF-958">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-958" target="_blank" rel="noopener">SF-958</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-06-S2</span>UAT Acceptance Criteria Design. Blocked on <a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-957" target="_blank" rel="noopener">SF-957</a> (revised SOW). Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve UAT</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="OneSolve enablement" data-ticket="SF-960">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-960" target="_blank" rel="noopener">SF-960</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-07-S2</span>Daily Cadence & Task Handoff Structure for offshore team (Ramesh + Ajay). Define standup, task format, escalation path. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">OneSolve enablement</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Needs Review" data-category="PO management" data-ticket="SF-961">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-961" target="_blank" rel="noopener">SF-961</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Close PO in Salesforce. Reported by Aravind Ajith. No description added. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">PO management</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Done" data-category="PO management" data-ticket="SF-962">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-962" target="_blank" rel="noopener">SF-962</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Close PO-25-1027007 + PO-25-1025713 with comment 'Closed as part of the process – Cancel Cogs over 1 year old.' Completed by Naveen Apr 3.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">PO management</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Done" data-category="Audit / access" data-ticket="SF-963">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-963" target="_blank" rel="noopener">SF-963</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Salesforce User Access List for YE financial audit (Scott Baiocchi). Naveen attached active user list same day, Apr 3.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Audit / access</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Naveen" data-status="Done" data-category="Account admin" data-ticket="SF-964">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-964" target="_blank" rel="noopener">SF-964</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell">Convert SHG Account to IC Account. Naveen completed Apr 9, confirmed in Jira comments.</td>
+  <td><span class="sbadge" style="background:#e3f5d4;color:#2d6a0a">✓ Done</span></td>
+  <td><div class="acell"><span class="adot" style="background:#1a6fc4">N</span><span>Naveen</span></div></td>
+  <td><span class="catbadge">Account admin</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Garima" data-status="In Progress" data-category="OneSolve migration" data-ticket="SF-939">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-939" target="_blank" rel="noopener">SF-939</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-01-S1a</span>Workspace Counts & Baseline Metrics — recipe counts (active vs stopped), all connections, daily job volumes (last 30 days), ~15 min screen recording for Workato PS. In Progress.</td>
+  <td><span class="sbadge" style="background:#d4eeff;color:#0550ae">⟳ In Progress</span></td>
+  <td><div class="acell"><span class="adot" style="background:#b55a1a">G</span><span>Garima</span></div></td>
+  <td><span class="catbadge">OneSolve migration</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Garima" data-status="In Progress" data-category="OneSolve migration" data-ticket="SF-940">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-940" target="_blank" rel="noopener">SF-940</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-01-S1b</span>Recipe Dependency Map & Sub-Flow Inventory — full multi-level dependency tree, shared sub-flows identified, Mermaid diagram, validate with AJ. In Progress.</td>
+  <td><span class="sbadge" style="background:#d4eeff;color:#0550ae">⟳ In Progress</span></td>
+  <td><div class="acell"><span class="adot" style="background:#b55a1a">G</span><span>Garima</span></div></td>
+  <td><span class="catbadge">OneSolve migration</span></td>
+</tr>
+<tr class="trow" data-priority="Unassigned" data-assignee="Garima" data-status="Needs Review" data-category="OneSolve migration" data-ticket="SF-941">
+  <td style="white-space:nowrap"><a class="jl" href="https://incrowdanswers.atlassian.net/browse/SF-941" target="_blank" rel="noopener">SF-941</a></td>
+  <td><span class="pbadge" style="background:#f4f5f7;color:#8e9aaf;border:1px solid #8e9aaf33">Unassigned</span></td>
+  <td class="summary-cell"><span class="etag">E-01-S2</span>Migration Effort Estimate — task breakdown in 4-hr blocks for Workato PS resource pitch by Prafulla. Estimate errs large. Needs Review.</td>
+  <td><span class="sbadge" style="background:#ede8fb;color:#3d218a">◉ Needs Review</span></td>
+  <td><div class="acell"><span class="adot" style="background:#b55a1a">G</span><span>Garima</span></div></td>
+  <td><span class="catbadge">OneSolve migration</span></td>
+</tr>
+</tbody></table>
+</table>
+</div><!-- end table-wrap -->
+<!-- EMPTY STATE -->
+<div class="nores-box" id="nores-box">
+  <div class="nores-box-icon">&#128270;</div>
+  <div class="nores-box-msg">No tickets match your filters</div>
+  <div class="nores-box-sub">Try adjusting or removing some filters to see results.</div>
+  <button class="nores-box-btn" onclick="resetFilters()">&#10005;&nbsp;Reset all filters</button>
+</div>
+<p class="nores" id="nores"></p>
+</div><!-- end tickets panel -->
+
+<!-- TRENDS PANEL -->
+<div id="trends" class="panel">
+  <div id="insight-chip-wrap" style="display:none">
+    <div class="insight-chip">
+      <span class="insight-chip-icon">&#129302;</span>
+      <div>
+        <div class="insight-chip-label">Smart Insight</div>
+        <div class="insight-chip-text" id="insight-text">Analysing tickets...</div>
+      </div>
+    </div>
+  </div>
+  <div id="trends-dynamic-container"></div>
+</div>
+
+<!-- ACTIONS PANEL -->
+<div id="actions" class="panel">
+  <div id="actions-dynamic-container"></div>
+</div>
+
+<!-- CHARTS PANEL -->
+<div id="charts" class="panel">
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>&#128202; Tickets by Status</h3>
+      <div class="chart-canvas-wrap"><canvas id="chart-status"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>&#129381; Tickets by Assignee</h3>
+      <div class="chart-canvas-wrap"><canvas id="chart-assignee"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>&#127919; Tickets by Priority</h3>
+      <div class="chart-canvas-wrap"><canvas id="chart-priority"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>&#128193; Top 10 Categories</h3>
+      <div class="chart-canvas-wrap"><canvas id="chart-category"></canvas></div>
+    </div>
+  </div>
+  <p style="font-size:11px;color:#aaa;text-align:center;margin-top:4px">&#8635; Charts update automatically based on active filters</p>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ═══════════════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════════════
+  var state = {
+    assignee: 'All',
+    metricFilter: '',   // '', '__total__', 'Done', 'In Progress', '__pending__'
+    charts: { status: null, assignee: null, priority: null, category: null }
+  };
+
+  var ALL_ROWS = Array.from(document.querySelectorAll('tr.trow'));
+  var PG_ROWS  = Array.from(document.querySelectorAll('tr.pg-row'));
+
+  // ═══════════════════════════════════════════════════════
+  // STATUS HELPERS
+  // ═══════════════════════════════════════════════════════
+  function isDone(s)      { return /^done$/i.test((s||'').trim()); }
+  function isActive(s)    { return /progress|awaiting|feedback|deploy/i.test(s||''); }
+  function isPending(s)   { return !isDone(s) && !isActive(s) && !/cancelled/i.test(s||''); }
+  function isCancelled(s) { return /cancelled/i.test(s||''); }
+
+  function attr(row, key) { return row.getAttribute('data-' + key) || ''; }
+
+  // ═══════════════════════════════════════════════════════
+  // APPLY FILTERS  (entry point called by all filter actions)
+  // ═══════════════════════════════════════════════════════
+  function applyFilters() {
+    var fa  = state.assignee;
+    var fp  = document.getElementById('f-priority').value;
+    var fd  = document.getElementById('f-status').value;
+    var fc  = document.getElementById('f-category').value;
+    var fq  = (document.getElementById('f-search').value || '').toLowerCase().trim();
+    var fs  = fd || state.metricFilter;
+
+    var visible = [];
+
+    ALL_ROWS.forEach(function (r) {
+      var ra = attr(r, 'assignee');
+      var rp = attr(r, 'priority');
+      var rs = attr(r, 'status');
+      var rc = attr(r, 'category');
+      var rt = attr(r, 'ticket');
+
+      // Assignee
+      var mA = fa === 'All' || ra === fa;
+
+      // Priority dropdown
+      var mP = !fp || rp === fp;
+
+      // Category dropdown
+      var mC = !fc || rc === fc;
+
+      // Status (metric card OR dropdown)
+      var mS = true;
+      if (!fs || fs === '__total__')     { mS = true; }
+      else if (fs === 'Done')            { mS = isDone(rs); }
+      else if (fs === 'In Progress')     { mS = isActive(rs); }
+      else if (fs === '__pending__')     { mS = isPending(rs); }
+      else                               { mS = rs === fs; }
+
+      // Search (ticket id, summary text, category, assignee)
+      var mQ = true;
+      if (fq) {
+        var summaryCell = r.querySelector('td.summary-cell');
+        var summaryText = summaryCell ? summaryCell.textContent.toLowerCase() : '';
+        mQ = rt.toLowerCase().indexOf(fq) > -1 ||
+             summaryText.indexOf(fq) > -1 ||
+             rc.toLowerCase().indexOf(fq) > -1 ||
+             ra.toLowerCase().indexOf(fq) > -1;
+      }
+
+      var show = mA && mP && mS && mC && mQ;
+      r.classList.toggle('hidden', !show);
+      if (show) visible.push(r);
+    });
+
+    // Priority group headers
+    PG_ROWS.forEach(function (g) {
+      var grp = g.getAttribute('data-group');
+      var has = ALL_ROWS.some(function (r) {
+        return attr(r, 'priority') === grp && !r.classList.contains('hidden');
+      });
+      g.classList.toggle('hidden', !has);
+    });
+
+    // No results
+    var any = visible.length > 0;
+    document.getElementById('nores').style.display = 'none';
+    var noresBox = document.getElementById('nores-box');
+    if (noresBox) noresBox.classList.toggle('visible', !any);
+    var tw = document.querySelector('.table-wrap');
+    if (tw) tw.style.visibility = any ? 'visible' : 'hidden';
+
+    // Table summary line
+    document.getElementById('tbl-summary').textContent =
+      'Showing ' + visible.length + ' of ' + ALL_ROWS.length + ' tickets';
+
+    updateMetrics(visible);
+    updateActiveFilterTags(fp, fs, fc, fq);
+    renderActiveFilterBar(fp, fs, fc, fq, fa);
+    updateMetricHighlight(fs);
+    updateFilterLabel(fp, fs, fc, fq, fa);
+    generateInsights(visible, fs);
+    generateActions(visible, fs);
+    updateCharts(visible);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // METRICS
+  // ═══════════════════════════════════════════════════════
+  function updateMetrics(visible) {
+    var tot = visible.length, dn = 0, ac = 0, pd = 0;
+    visible.forEach(function (r) {
+      var s = attr(r, 'status');
+      if (isDone(s)) dn++;
+      else if (isActive(s)) ac++;
+      else if (isPending(s)) pd++;
+    });
+    var pct = tot > 0 ? Math.round(dn / tot * 100) : 0;
+    document.getElementById('mt').textContent  = tot;
+    document.getElementById('md').textContent  = dn;
+    document.getElementById('mds').textContent = pct + '% closure rate';
+    document.getElementById('mi').textContent  = ac;
+    document.getElementById('mp').textContent  = pd;
+
+    var nm = { All: 'All Team', Ajay: 'Ajay Kaushal', Amanulla: 'Shaik Amanulla',
+               Naveen: 'Naveen Narisepalli', Garima: 'Garima Vardhan' };
+    document.getElementById('gl').textContent =
+      '\u2728 Sprint at a Glance \u2014 ' + (nm[state.assignee] || state.assignee);
+  }
+
+  function updateMetricHighlight(fs) {
+    document.querySelectorAll('.metric').forEach(function (m) { m.classList.remove('active-filter'); });
+    if (!fs || fs === '__total__')  document.querySelector('.m-total').classList.add('active-filter');
+    else if (fs === 'Done')         document.querySelector('.m-done').classList.add('active-filter');
+    else if (fs === 'In Progress')  document.querySelector('.m-inprog').classList.add('active-filter');
+    else if (fs === '__pending__')  document.querySelector('.m-pend').classList.add('active-filter');
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // ACTIVE FILTER LABEL + TAGS
+  // ═══════════════════════════════════════════════════════
+  // =======================================================
+  // ACTIVE FILTER BAR  (new implementation)
+  // =======================================================
+  function updateFilterLabel(fp, fs, fc, fq, fa) { /* legacy stub - handled by renderActiveFilterBar */ }
+  function updateActiveFilterTags(fp, fs, fc, fq) { /* legacy stub - handled by renderActiveFilterBar */ }
+
+  function renderActiveFilterBar(fp, fs, fc, fq, fa) {
+    var bar   = document.getElementById('active-filter-bar');
+    var chips = document.getElementById('afb-chips');
+    if (!bar || !chips) return;
+    chips.innerHTML = '';
+    var hasFilter = (fa !== 'All') || fp || (fs && fs !== '__total__') || fc || fq;
+    if (!hasFilter) { bar.classList.remove('visible'); return; }
+    bar.classList.add('visible');
+
+    function chip(icon, label, cls, clearFn) {
+      var d = document.createElement('span');
+      d.className = 'afb-chip ' + cls;
+      d.innerHTML = icon + ' <b>' + label + '</b>'
+        + '<span class="afb-chip-remove" onclick="' + clearFn + '" title="Remove filter">&#10005;</span>';
+      chips.appendChild(d);
+    }
+    if (fa !== 'All')
+      chip('&#128100;', fa, 'afb-chip-assignee',
+        "window.setAssignee('All',document.querySelector('[data-who=\'All\']'))");
+    if (fp)
+      chip('&#128681;', fp, 'afb-chip-priority',
+        "document.getElementById('f-priority').value='';applyFilters()");
+    if (fs && fs !== '__total__') {
+      var lbl2 = fs==='Done' ? 'Done'
+               : fs==='In Progress' ? 'In Progress'
+               : fs==='__pending__' ? 'Needs Review / To Do' : fs;
+      chip('&#128203;', lbl2, 'afb-chip-status', "window._clearMetricFilter()");
+    }
+    if (fc)
+      chip('&#128194;', fc, 'afb-chip-category',
+        "document.getElementById('f-category').value='';applyFilters()");
+    if (fq)
+      chip('&#128269;', '"' + fq + '"', 'afb-chip-search',
+        "document.getElementById('f-search').value='';applyFilters()");
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // GENERATE INSIGHTS  (Trends tab)
+  // ═══════════════════════════════════════════════════════
+  function generateInsights(visible, fs) {
+    var stats = buildStats(visible);
+    var mode  = resolveMode(fs);
+    var total = visible.length;
+
+    generateSmartInsight(stats, total, fs);
+
+    if (!total) {
+      document.getElementById('trends-dynamic-container').innerHTML =
+        '<div class="trends-card"><p style="color:#aaa;text-align:center;padding:2rem">No tickets match current filters — adjust filters to see insights.</p></div>';
+      return;
+    }
+
+    var html = banner(mode) + '<div class="trends-card">';
+
+    if (mode === 'total') {
+      html += sectionTitle('Status Distribution') + statusDonut(stats.byStatus, total);
+      html += '</div>';
+      html += trendItem('dred', topIssues(stats), buildTopIssueBody(stats));
+      html += trendItem('damb', 'Top workload: ' + stats.topAssignees[0] + ' (' + (stats.byAssignee[stats.topAssignees[0]]||0) + ' tickets)',
+        'Assignee breakdown: ' + stats.topAssignees.slice(0,4).map(function(a){ return '<b>'+a+'</b> ('+stats.byAssignee[a]+')'; }).join(', ') + '.');
+      html += trendItem('damb', 'Heaviest categories: ' + stats.topCats.slice(0,3).map(function(c){ return c+' ('+stats.byCat[c]+')'; }).join(', '),
+        'These categories drive the most ticket volume. Focus review effort here.');
+      html += trendItem('dteal', 'Sprint closure rate: ' + pct(stats.done, total) + '%',
+        stats.done + ' Done, ' + stats.active + ' Active, ' + stats.pending + ' Pending out of ' + total + ' total visible tickets.');
+      html += assigneeChart(stats, 'Workload per Assignee') + catChart(stats, 'Tickets by Category');
+
+    } else if (mode === 'done') {
+      html += sectionTitle('Completion Summary');
+      html += statBoxes([
+        {val: total, label: 'Closed', bg:'#f1f8e9', col:'#2e7d32'},
+        {val: stats.blockersDone, label: 'Blockers Resolved', bg:'#e8f5e9', col:'#1b5e20'},
+        {val: stats.sameDayCount, label: 'Same-day Closes', bg:'#f9fbe7', col:'#558b2f'}
+      ]);
+      html += '</div>';
+      html += trendItem('dteal', stats.topAssignees[0] + ' led closures with ' + (stats.byAssignee[stats.topAssignees[0]]||0) + ' tickets resolved',
+        'Top contributors: ' + stats.topAssignees.slice(0,3).map(function(a){ return a+' ('+stats.byAssignee[a]+')'; }).join(', ') + '.');
+      html += trendItem('dteal', 'Top closed categories: ' + stats.topCats.slice(0,3).map(function(c){ return c+' ('+stats.byCat[c]+')'; }).join(', '),
+        'Highest completion volume. Replicate the approach for pending items in same categories.');
+      if (stats.sameDayCount) html += trendItem('dteal', stats.sameDayCount + ' same-day turnaround tickets',
+        'Fast closures demonstrate excellent team responsiveness. Standardise this practice.');
+      html += assigneeChart(stats, 'Closure Contribution per Assignee') + catChart(stats, 'Closed Tickets by Category');
+
+    } else if (mode === 'active') {
+      html += sectionTitle('Active Work Snapshot');
+      html += statBoxes([
+        {val: stats.ipCount, label: 'In Progress', bg:'#e3f2fd', col:'#0277bd'},
+        {val: stats.awaitingCount, label: 'Awaiting Response', bg:'#fff3e0', col:'#e65100'},
+        {val: stats.deployCount, label: 'Ready to Deploy', bg:'#e0f7fa', col:'#0288d1'}
+      ]);
+      html += '</div>';
+      html += trendItem('dred', stats.awaitingCount + ' ticket' + (stats.awaitingCount!==1?'s are':' is') + ' stalled awaiting external input',
+        stats.awaitingCount ? 'Awaiting: ' + stats.awaitingList.slice(0,5).map(jlk).join(', ') + (stats.awaitingList.length>5?' +' +(stats.awaitingList.length-5)+' more':'') + '. Chase these up now.' : 'No tickets awaiting inputs.');
+      html += trendItem('damb', 'Heaviest active workload: ' + (stats.topAssignees[0]||'—') + ' (' + (stats.byAssignee[stats.topAssignees[0]]||0) + ' active tickets)',
+        'Active assignees: ' + stats.topAssignees.slice(0,3).map(function(a){ return '<b>'+a+'</b> ('+stats.byAssignee[a]+')'; }).join(', ') + '.');
+      html += trendItem('damb', 'Top active categories: ' + stats.topCats.slice(0,3).map(function(c){ return c+' ('+stats.byCat[c]+')'; }).join(', '),
+        stats.byCat['OneSolve migration'] > 5 ? 'OneSolve migration has ' + stats.byCat['OneSolve migration'] + ' active tickets — sequentially gated on Garima\'s baseline work.' : 'Review if any category has a systematic bottleneck.');
+      if (stats.deployCount) html += trendItem('dteal', stats.deployCount + ' ticket' + (stats.deployCount!==1?'s are':' is') + ' Ready to Deploy',
+        'Coordinate with AIM/dev team to schedule production releases promptly.');
+      html += assigneeChart(stats, 'Active Tickets per Assignee') + catChart(stats, 'Active Tickets by Category');
+
+    } else if (mode === 'pending') {
+      html += sectionTitle('Pending Breakdown');
+      html += statBoxes([
+        {val: stats.nrCount, label: 'Needs Review', bg:'#f3e5f5', col:'#6a1b9a'},
+        {val: stats.tdCount, label: 'To Do', bg:'#fff8e1', col:'#f57c00'},
+        {val: stats.oneSolveCount, label: 'OneSolve Gated', bg:'#fce4ec', col:'#880e4f'}
+      ]);
+      html += '</div>';
+      html += trendItem('dred', (stats.topAssignees[0]||'—') + ' has the largest pending backlog (' + (stats.byAssignee[stats.topAssignees[0]]||0) + ' tickets)',
+        'Pending distribution: ' + stats.topAssignees.slice(0,3).map(function(a){ return '<b>'+a+'</b> ('+stats.byAssignee[a]+')'; }).join(', ') + '.' + (stats.byAssignee['Naveen'] > 25 ? ' Naveen\'s backlog is dominated by gated OneSolve epics.' : ''));
+      html += trendItem('dred', stats.oneSolveCount + ' tickets blocked on business decisions',
+        'OneSolve tickets are gated on ' + [jlk('SF-935'), jlk('SF-936'), jlk('SF-937')].join(', ') + '. Until unblocked, downstream migration tickets cannot start.');
+      if (stats.bugCount) html += trendItem('damb', stats.bugCount + ' bug ticket' + (stats.bugCount!==1?'s':'')+' sitting in pending — risk of production impact',
+        'Unresolved bugs in Needs Review / To Do should be prioritised over enhancements in Sprint 160 planning.');
+      html += trendItem('dteal', stats.nrCount + ' Needs Review tickets need owner action — not just tracking',
+        'Each Needs Review ticket needs a concrete next step. Set a 3-day rule: no Needs Review ticket should go without a comment update for more than 3 days.');
+      html += assigneeChart(stats, 'Pending Tickets per Assignee') + catChart(stats, 'Pending Tickets by Category');
+    }
+
+
+    // ── Sprint 159 structured pattern cards (fully dynamic, filter-aware) ──
+
+    // Reusable structured trend-card builder
+    function tc(dotCls, title, tag, tagCls, evidence, insight, impact, calloutTxt, calloutCls) {
+      var h = '<div class="tc">';
+      h += '<div class="tc-head"><span class="tc-dot ' + dotCls + '"></span>';
+      h += '<span class="tc-title">' + title;
+      if (tag) h += '<span class="tc-tag ' + tagCls + '">' + tag + '</span>';
+      h += '</span></div><div class="tc-body">';
+      h += '<div class="tc-section"><span class="tc-section-label tc-section-label-ev">Key Evidence</span>';
+      h += '<div class="tc-section-content"><ul>' + evidence.map(function(e){ return '<li>' + e + '</li>'; }).join('') + '</ul></div></div>';
+      h += '<div class="tc-section"><span class="tc-section-label tc-section-label-ins">Insight</span>';
+      h += '<div class="tc-section-content"><ul>' + insight.map(function(e){ return '<li>' + e + '</li>'; }).join('') + '</ul></div></div>';
+      var impCls = calloutCls === 'tc-callout-teal' ? 'tc-section-label-pos' : 'tc-section-label-imp';
+      h += '<div class="tc-section"><span class="tc-section-label ' + impCls + '">Impact</span>';
+      h += '<div class="tc-section-content"><ul>' + impact.map(function(e){ return '<li>' + e + '</li>'; }).join('') + '</ul></div></div>';
+      h += '<div class="tc-callout ' + calloutCls + '">' + calloutTxt + '</div>';
+      h += '</div></div>';
+      return h;
+    }
+
+    // Map of ticket → which pattern card it belongs to
+    var PATTERN_TICKETS = {
+      revenue:  ['SF-923','SF-914','SF-916'],
+      vendor:   ['SF-902','SF-927'],
+      apex:     ['SF-887','SF-888','SF-889','SF-890'],
+      onesol:   ['SF-935','SF-936','SF-937'],
+      exectn:   ['SF-929','SF-928','SF-962','SF-963','SF-919','SF-912']
+    };
+
+    // Build a Set of visible ticket IDs for O(1) lookup
+    var visibleSet = {};
+    visible.forEach(function(r) { visibleSet[r.getAttribute('data-ticket')] = true; });
+
+    // Check if ANY ticket from a group is in the visible set
+    function groupVisible(keys) {
+      return keys.some(function(k) { return visibleSet[k]; });
+    }
+    // Filter a list of ticket IDs to only those visible, return as jlk links
+    function visibleLinks(keys) {
+      return keys.filter(function(k) { return visibleSet[k]; }).map(jlk);
+    }
+    // Count visible tickets in a group
+    function visibleCount(keys) {
+      return keys.filter(function(k) { return visibleSet[k]; }).length;
+    }
+
+    var spCards = '';
+    var spCount = 0;
+
+    // ── 1. Revenue Calculation Issues ──────────────────────────────────────
+    if (groupVisible(PATTERN_TICKETS.revenue)) {
+      spCount++;
+      var revLinks = visibleLinks(PATTERN_TICKETS.revenue);
+      var evRev = [];
+      if (visibleSet['SF-923']) evRev.push(jlk('SF-923') + ' &rarr; <span class="tc-highlight">~$660K uncounted revenue</span> due to sub-project revenue not calculating');
+      if (visibleSet['SF-914']) evRev.push(jlk('SF-914') + ' &rarr; <span class="tc-highlight">Negative values</span> appearing instead of $0 on project cancellation');
+      if (visibleSet['SF-916']) evRev.push(jlk('SF-916') + ' &rarr; Automation fix queued (To Do, Sprint 160)');
+      spCards += tc(
+        'tc-dot-red', 'Revenue Calculation Issues', 'High Financial Impact', 'tc-tag-red',
+        evRev,
+        [
+          'Systemic issue in Sub Project Revenue logic — same field affected across ' + visibleCount(PATTERN_TICKETS.revenue) + ' visible ticket' + (visibleCount(PATTERN_TICKETS.revenue)!==1?'s':''),
+          'Pattern not isolated to one project — calculation logic needs comprehensive review'
+        ],
+        [
+          '<b>Direct impact on financial reporting accuracy</b> — $660K+ revenue gap identified',
+          'Risk of incorrect monthly bookings and revenue forecasting if not resolved urgently',
+          'Finance team (Ken Roe, Sal Brucculeri) already engaged for visibility'
+        ],
+        '&#128680; Sub Project Revenue object requires end-to-end audit before Sprint 160 deployment.',
+        'tc-callout-red'
+      );
+    }
+
+    // ── 2. Vendor & Bidding Null Errors ────────────────────────────────────
+    if (groupVisible(PATTERN_TICKETS.vendor)) {
+      spCount++;
+      var evVend = [];
+      if (visibleSet['SF-902'] && visibleSet['SF-927'])
+        evVend.push(jlk('SF-902') + ' and ' + jlk('SF-927') + ' &rarr; <b>Identical</b> "Attempt to de-reference a null object" error');
+      else
+        evVend.push(visibleLinks(PATTERN_TICKETS.vendor).join(', ') + ' &rarr; Null object error on Vendor Management task');
+      evVend.push('Same project: PJ-Z260200175-001 — two separate reporters hit the same failure');
+      evVend.push('Root cause: missing <code style="background:#f0f2f5;padding:1px 5px;border-radius:3px;font-size:11px">Primary_Task_Country_Detail__c</code> record + Task Hub ID not tagged');
+      spCards += tc(
+        'tc-dot-red', 'Vendor &amp; Bidding Flow Failures', 'Null Object Errors', 'tc-tag-red',
+        evVend,
+        [
+          'Silent failure in record creation flow — only surfaces when user attempts bid creation',
+          'Multiple reporters encountering identical defect indicates a systemic record creation problem'
+        ],
+        [
+          '<b>Blocks bid group creation entirely</b> — cannot allocate quotas or generate margin estimates',
+          'Risk of more projects hitting same error if root cause is not fixed at the trigger/flow level'
+        ],
+        '&#128680; Treat as a single fix. Trace trigger/flow responsible for creating these records on project alert.',
+        'tc-callout-red'
+      );
+    }
+
+    // ── 3. Flow → Apex Migration ────────────────────────────────────────────
+    if (groupVisible(PATTERN_TICKETS.apex)) {
+      spCount++;
+      var apexLinks = visibleLinks(PATTERN_TICKETS.apex);
+      var apexDone  = PATTERN_TICKETS.apex.filter(function(k){ return visibleSet[k] && attr(ALL_ROWS.find(function(r){return r.getAttribute('data-ticket')===k;})||document.createElement('tr'),'status').toLowerCase().indexOf('done')>-1; });
+      var evApex = [ apexLinks.join(', ') + ' &rarr; All <b>completed and deployed</b>' ];
+      if (visibleSet['SF-887'] || visibleSet['SF-890'])
+        evApex.push('Invoice generation time: <span class="tc-highlight">7+ minutes &rarr; ~5 seconds</span>');
+      evApex.push('SHG invoice blocking issue fully resolved — 3 child flows merged into 1 Apex class');
+      spCards += tc(
+        'tc-dot-teal', 'Flow &rarr; Apex Migration', 'Sprint 159 Win &#127942;', 'tc-tag-teal',
+        evApex,
+        [
+          'Apex replaces multiple separate flows with one centralised, bulkified class',
+          'Better error handling, explicit logic, and reusability across triggers and batch jobs'
+        ],
+        [
+          '<b>Dramatic reduction in invoice processing time</b> — customer-facing improvement',
+          'Eliminates governor limit risk from repeated DB calls across separate flows',
+          'Foundation for future invoice enhancements — logic now easily extendable'
+        ],
+        '&#128640; Biggest success of Sprint 159 &mdash; highlight in sprint review and leadership summary.',
+        'tc-callout-teal'
+      );
+    }
+
+    // ── 4. OneSolve Blocked ─────────────────────────────────────────────────
+    if (groupVisible(PATTERN_TICKETS.onesol)) {
+      spCount++;
+      var evOS = [];
+      if (visibleSet['SF-935']) evOS.push(jlk('SF-935') + ' &rarr; GL batch sync frequency — blocked on <b>Scott Baiocchi decision</b>');
+      if (visibleSet['SF-936']) evOS.push(jlk('SF-936') + ' &rarr; Platform Event 24-hr replay window — <b>NEVER tested</b> (14,000+ events queued)');
+      if (visibleSet['SF-937']) evOS.push(jlk('SF-937') + ' &rarr; UAT framework — blocked on <b>revised SOW</b> from Scott/Marquis');
+      spCards += tc(
+        'tc-dot-amb', 'OneSolve Epics Blocked', 'Business Dependency Risk', 'tc-tag-amb',
+        evOS,
+        [
+          visibleCount(PATTERN_TICKETS.onesol) + ' separate epic' + (visibleCount(PATTERN_TICKETS.onesol)!==1?'s require':'requires') + ' stakeholder decisions before work can resume',
+          'Production cutover (' + jlk('SF-947') + ') is directly downstream of all three'
+        ],
+        [
+          '<b>Production cutover cannot proceed</b> until all visible blockers are resolved',
+          '14,000+ Platform Events queued — extended delay increases data consistency risk',
+          'Downstream migration tickets SF-943 through SF-948 cannot start until unblocked'
+        ],
+        '&#9888;&#65039; Formal escalation to Prafulla + Scott Baiocchi required this sprint. Set a hard decision deadline.',
+        'tc-callout-amb'
+      );
+    }
+
+    // ── 5. Strong Operational Execution ────────────────────────────────────
+    if (groupVisible(PATTERN_TICKETS.exectn)) {
+      spCount++;
+      var execLinks = visibleLinks(PATTERN_TICKETS.exectn);
+      var revUploads  = ['SF-929','SF-928'].filter(function(k){ return visibleSet[k]; });
+      var adminTasks  = ['SF-962','SF-963','SF-919','SF-912'].filter(function(k){ return visibleSet[k]; });
+      var evExec = [];
+      if (revUploads.length) evExec.push(revUploads.map(jlk).join(', ') + ' &rarr; Blocker-priority revenue uploads completed <b>same-day</b>');
+      if (adminTasks.length) evExec.push(adminTasks.map(jlk).join(', ') + ' &rarr; All completed promptly with logs attached');
+      evExec.push('All ' + execLinks.length + ' task' + (execLinks.length!==1?'s':'')+' delivered with Jira comments updated and evidence provided');
+      spCards += tc(
+        'tc-dot-teal', 'Strong Operational Execution', 'Same-Day Completions', 'tc-tag-teal',
+        evExec,
+        [
+          'Pattern of fast turnaround on operational tasks — investigate, resolve, log, close in one session',
+          'Low-noise execution reflecting high team responsiveness on business-critical requests'
+        ],
+        [
+          '<b>Zero escalations required</b> for operational task category this sprint',
+          'Stakeholders received timely responses with full documentation',
+          'Best practice to document and replicate in Sprint 160 for similar request types'
+        ],
+        '&#9989; Operational excellence demonstrated. Standardise this same-day close practice across the team.',
+        'tc-callout-teal'
+      );
+    }
+
+    // Only render the section if at least one card is relevant
+    if (spCount > 0) {
+      var SPRINT_PATTERNS = '<div class="trends-card" style="margin-top:16px;padding:16px 20px">'
+        + '<div class="sprint-section-header">&#128204; Recurring Patterns &mdash; Sprint 159 Detail'
+        + '<span style="font-size:11px;font-weight:600;color:#888;text-transform:none;margin-left:8px">'
+        + spCount + ' pattern' + (spCount!==1?'s':'')+' relevant to current filter</span></div>'
+        + spCards
+        + '</div>';
+      html += SPRINT_PATTERNS;
+    }
+
+    document.getElementById('trends-dynamic-container').innerHTML = html;
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // GENERATE ACTIONS  (Action Items tab)
+  // ═══════════════════════════════════════════════════════
+  function generateActions(visible, fs) {
+    var stats = buildStats(visible);
+    var mode  = resolveMode(fs);
+    var total = visible.length;
+
+    if (!total) {
+      document.getElementById('actions-dynamic-container').innerHTML =
+        '<div class="actions-card"><p style="color:#aaa;text-align:center;padding:2rem">No tickets match current filters.</p></div>';
+      return;
+    }
+
+    var html = '<div class="actions-card">' + banner(mode);
+
+    if (mode === 'total') {
+      if (stats.blockerList.length) html += actionItem('&#128308; Resolve ' + stats.blockerList.length + ' Blocker ticket' + (stats.blockerList.length!==1?'s':''),
+        'Open Blockers: ' + stats.blockerList.slice(0,4).map(jlk).join(', ') + (stats.blockerList.length>4?' +' +(stats.blockerList.length-4)+' more':'') + '. Highest business impact — address first.', '#c0392b');
+      html += actionItem('&#128202; Sprint closure rate: ' + pct(stats.done, total) + '%',
+        pct(stats.done, total) < 30
+          ? 'Below 30% closure rate. Triage pending tickets, identify fast-wins, and pull them into active sprint.'
+          : 'Good closure rate. Focus on completing In Progress tickets before picking up new work.', '#1565c0');
+      if (stats.awaitingCount) html += actionItem('&#9200; Chase up ' + stats.awaitingCount + ' tickets awaiting response',
+        'Tickets: ' + stats.awaitingList.slice(0,5).map(jlk).join(', ') + (stats.awaitingList.length>5?' and '+(stats.awaitingList.length-5)+' more.':'.') + ' Every day waiting = sprint carryover.', '#f57c00');
+      html += actionItem('&#128101; Review workload distribution',
+        'Top assignees: ' + stats.topAssignees.slice(0,3).map(function(a){ return a+' ('+stats.byAssignee[a]+')'; }).join(', ') + '. Check if redistribution or delegation is needed.', '#0f6e56');
+
+    } else if (mode === 'done') {
+      html += actionItem('&#127942; Replicate same-day close practice',
+        'Same-day closures (' + stats.sameDayCount + ' this sprint) demonstrate best practice: investigate → resolve → attach log → close in one session.', '#2e7d32');
+      html += actionItem('&#128203; Build runbooks for top closed categories',
+        'Categories with most closures: ' + stats.topCats.slice(0,2).join(', ') + '. Document the resolution pattern so future similar tickets are resolved faster.', '#1565c0');
+      html += actionItem('&#128227; Share sprint wins with the team',
+        total + ' tickets closed' + (stats.blockersDone ? ', including ' + stats.blockersDone + ' Blocker resolution' + (stats.blockersDone!==1?'s':'') : '') + '. Highlight top contributors in the sprint review.', '#6a1b9a');
+      html += actionItem('&#128260; Check if any Done tickets have unresolved follow-ups',
+        'Some Done tickets may have spawned child issues or mentioned related tickets. Quick scan before sprint close ensures nothing falls through.', '#0f6e56');
+
+    } else if (mode === 'active') {
+      if (stats.awaitingCount) html += actionItem('&#9889; Unblock ' + stats.awaitingCount + ' stalled ticket' + (stats.awaitingCount!==1?'s':''),
+        'Awaiting: ' + stats.awaitingList.slice(0,5).map(jlk).join(', ') + (stats.awaitingList.length>5?' and '+(stats.awaitingList.length-5)+' more':'') + '. Send follow-ups to stakeholders today.', '#e65100');
+      if (stats.deployCount) html += actionItem('&#128640; Deploy ' + stats.deployCount + ' Ready-to-Deploy ticket' + (stats.deployCount!==1?'s':''),
+        'These are sandbox-complete. Schedule production deployment with AIM/dev team — do not let them sit idle.', '#0288d1');
+      html += actionItem('&#128270; Daily standup check on In Progress tickets',
+        'All ' + stats.ipCount + ' In Progress tickets need daily updates. Any ticket "In Progress" for 3+ days without comment needs a blocker review.', '#1565c0');
+      html += actionItem('&#128222; Escalate dependency blockers this sprint',
+        'Several active tickets depend on external decisions (GL sync, Platform Event test, revised SOW). These need escalation — not just status tracking.', '#c0392b');
+      if (stats.topAssignees[0]) html += actionItem('&#128101; Review ' + stats.topAssignees[0] + '\'s active load (' + (stats.byAssignee[stats.topAssignees[0]]||0) + ' tickets)',
+        'Heaviest active workload. Check if any tickets can be reassigned or fast-tracked to reduce risk.', '#6a1b9a');
+
+    } else if (mode === 'pending') {
+      html += actionItem('&#128203; Triage all Needs Review tickets — give each a concrete next step',
+        stats.nrCount + ' tickets in Needs Review. For each: investigate, request missing info, or close as FAD/duplicate. No ticket should stay in Needs Review without a comment for 3+ days.', '#6a1b9a');
+      html += actionItem('&#128274; Escalate the 3 OneSolve blockers',
+        jlk('SF-935') + ', ' + jlk('SF-936') + ', ' + jlk('SF-937') + ' are blocking ' + stats.oneSolveCount + ' downstream tickets. Send a formal escalation with a decision deadline to Scott Baiocchi + Marquis Jones.', '#c0392b');
+      if (stats.bugCount) html += actionItem('&#128027; Prioritise ' + stats.bugCount + ' pending bug ticket' + (stats.bugCount!==1?'s':'') + ' in Sprint 160',
+        'Bugs in Needs Review / To Do are active risks. Pull them to the top of Sprint 160 planning — before enhancements.', '#e65100');
+      html += actionItem('&#128197; Sprint 160 planning: map dependencies before assigning',
+        stats.tdCount + ' tickets in To Do. Several cannot start without prerequisites. Build a dependency map before assigning sprint slots to avoid false starts.', '#1565c0');
+    }
+
+    html += '</div>';
+
+    // ── Sprint 159 detailed action items (fully dynamic, filter-aware) ──────
+
+    // Action card definitions: each has trigger tickets and a builder function
+    var ACTION_DEFS = [
+
+      // 1. SF-914 negative revenue
+      { tickets: ['SF-914'],
+        render: function() {
+          return actionItemStructured(
+            jlk('SF-914') + ' &mdash; Negative Revenue on Cancelled Projects',
+            'HIGH PRIORITY', '#fcebeb', '#a32d2d', '#c0392b',
+            'Transaction Detail Amount resetting to negative value (instead of $0) on project cancellation. First appeared Mar 10. Affecting monthly revenue/bookings numbers.',
+            [
+              '&#128308; Fix urgently &mdash; root cause analysis in progress by Amanulla',
+              '&#9989; Validate corrected values with finance team once fix is deployed',
+              '&#128227; Communicate timeline and impact to Ken Roe, Sal Brucculeri, Allie DaCar'
+            ]
+          );
+        }
+      },
+
+      // 2. SF-930 tracker field
+      { tickets: ['SF-930'],
+        render: function() {
+          return actionItemStructured(
+            jlk('SF-930') + ' &mdash; &ldquo;Project is a Tracker&rdquo; Field',
+            'SPRINT 160 CRITICAL', '#fff3e0', '#e65100', '#e67e22',
+            'Required Yes/No field for LS Quant + Qual projects to support active sales/marketing campaign revenue tracking.',
+            [
+              '&#128640; Prioritise at the very top of Sprint 160 backlog',
+              '&#128197; Campaign is already launching &mdash; any delay directly impacts revenue conversion tracking'
+            ]
+          );
+        }
+      },
+
+      // 3. SF-902/SF-927 vendor null error
+      { tickets: ['SF-902','SF-927'],
+        render: function(vis) {
+          var links = ['SF-902','SF-927'].filter(function(k){return vis[k];}).map(jlk).join(' / ');
+          return actionItemStructured(
+            links + ' &mdash; Vendor Management Null Object Error',
+            'BLOCKER', '#fcebeb', '#a32d2d', '#c0392b',
+            'Identical "Attempt to de-reference a null object" error on PJ-Z260200175-001. Blocking bid creation entirely.',
+            [
+              '&#128269; Treat as a <b>single fix</b> covering both tickets &mdash; same root cause',
+              '&#128270; Trace the trigger/flow responsible for creating <code style="background:#f0f0f0;padding:1px 5px;border-radius:3px;font-size:11px">Primary_Task_Country_Detail__c</code> when a project is alerted',
+              '&#128101; Amanulla to investigate and resolve in Sprint 160'
+            ]
+          );
+        }
+      },
+
+      // 4. SF-935/936/937 OneSolve blockers
+      { tickets: ['SF-935','SF-936','SF-937'],
+        render: function(vis) {
+          var links = ['SF-935','SF-936','SF-937'].filter(function(k){return vis[k];}).map(jlk).join(' / ');
+          return actionItemStructured(
+            links + ' &mdash; OneSolve Blockers Requiring Business Decisions',
+            null, null, null, '#d4a017',
+            'Three epics blocked pending decisions from Scott Baiocchi and Marquis Jones. Production cutover cannot proceed until all are resolved.',
+            [
+              '&#128222; Naveen to send formal escalation to Prafulla and Scott Baiocchi <b>this week</b> with decision deadline',
+              '&#9201; Decisions needed: (1) GL batch sync frequency, (2) Platform Event replay window test, (3) revised SOW for UAT scope',
+              '&#128308; Until resolved, downstream migration tickets (' + jlk('SF-943') + ' through ' + jlk('SF-948') + ') cannot start'
+            ]
+          );
+        }
+      },
+
+      // 5. SF-910 sub-project specs
+      { tickets: ['SF-910'],
+        render: function() {
+          return actionItemStructured(
+            jlk('SF-910') + ' &mdash; Project Specifications Not Piping to All Sub-Projects',
+            'SPRINT 160', '#e3f2fd', '#0d47a1', '#1565c0',
+            'FPS records only go to the latest sub-project (e.g. 002) instead of all alerted projects. PMs manually delete unwanted lines as workaround.',
+            [
+              '&#128270; Fix the alert trigger logic to pipe specs into <b>all</b> alerted sub-projects',
+              '&#128101; Assigned to Amanulla, Sprint 160. Connected to ' + jlk('SF-878') + ' (Done)'
+            ]
+          );
+        }
+      },
+
+      // 6. SF-924 ready to deploy
+      { tickets: ['SF-924'],
+        render: function() {
+          return actionItemStructured(
+            jlk('SF-924') + ' &mdash; Profession/Specialty Name Shortening &mdash; Ready to Deploy',
+            'DEPLOY NOW', '#e0f7fa', '#0277bd', '#0288d1',
+            'Sandbox implementation complete Apr 9. Blocks AIM-680. Deployment coordination required.',
+            [
+              '&#128640; Coordinate deployment timing with <b>Nicolas Castro (AIM)</b> so dependent sync changes go together',
+              '&#128203; Do not deploy independently &mdash; AIM-680 depends on this being aligned'
+            ]
+          );
+        }
+      },
+
+      // 7. SF-913/SF-921 bid bugs
+      { tickets: ['SF-913','SF-921'],
+        render: function(vis) {
+          var links = ['SF-913','SF-921'].filter(function(k){return vis[k];}).map(jlk).join(' / ');
+          return actionItemStructured(
+            links + ' &mdash; Bid Excel &amp; Bid Quote Page Bugs',
+            'NO UPDATE THIS SPRINT', '#f3e5f5', '#4a148c', '#6a1b9a',
+            'Both tickets reported end of sprint with no resolution comments. SF-913 (unable to generate bid Excel), SF-921 (cannot edit Final Bid Quote page).',
+            [
+              '&#128197; Prioritise investigation at start of Sprint 160',
+              '&#128226; Update reporters: Priyanka Naik (' + jlk('SF-913') + ') and Jessica Snook-Curr (' + jlk('SF-921') + ')',
+              '&#9888;&#65039; Bid generation issues directly impact sales velocity &mdash; cannot be deferred again'
+            ]
+          );
+        }
+      }
+
+    ];
+
+    // Helper: renders a structured action item with badge + issue + bullet actions
+    function actionItemStructured(heading, badge, badgeBg, badgeCol, borderCol, issueText, actions) {
+      var h = '<div class="airow" style="border-left-color:' + borderCol + ';margin-bottom:14px">';
+      h += '<div class="aihd">' + heading;
+      if (badge) h += '<span style="background:' + badgeBg + ';color:' + badgeCol + ';font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;margin-left:8px">' + badge + '</span>';
+      h += '</div>';
+      h += '<div class="aibd" style="margin-top:6px"><b>Issue:</b> ' + issueText + '<br>';
+      h += '<b style="display:block;margin-top:6px">Actions required:</b>';
+      h += '<ul style="margin:4px 0 0 16px;line-height:1.9;font-size:12px;color:#555">';
+      actions.forEach(function(a){ h += '<li>' + a + '</li>'; });
+      h += '</ul></div></div>';
+      return h;
+    }
+
+    // Build visible set for action filtering
+    var visSetA = {};
+    visible.forEach(function(r) { visSetA[r.getAttribute('data-ticket')] = true; });
+
+    var saCards = '';
+    var saCount = 0;
+
+    ACTION_DEFS.forEach(function(def) {
+      var relevant = def.tickets.some(function(k) { return visSetA[k]; });
+      if (relevant) {
+        saCount++;
+        saCards += def.render(visSetA);
+      }
+    });
+
+    if (saCount > 0) {
+      var SPRINT_ACTIONS = '<div class="actions-card" style="margin-top:16px">'
+        + '<p class="slabel" style="margin-bottom:14px;color:#1565c0;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase">'
+        + '&#9889; Sprint 159 &mdash; Detailed Action Items'
+        + '<span style="font-weight:600;color:#888;text-transform:none;margin-left:8px">'
+        + saCount + ' item' + (saCount!==1?'s':'')+' relevant to current filter</span></p>'
+        + saCards
+        + '</div>';
+      html += SPRINT_ACTIONS;
+    } else {
+      html += '<div class="actions-card" style="margin-top:16px;text-align:center;padding:2rem">'
+        + '<div style="font-size:32px;margin-bottom:8px">&#10003;</div>'
+        + '<p style="font-weight:700;color:#555;margin-bottom:4px">No specific Sprint 159 actions for this filter</p>'
+        + '<p style="font-size:12px;color:#aaa">The filtered tickets do not map to any Sprint 159 curated action items.</p>'
+        + '</div>';
+    }
+
+    document.getElementById('actions-dynamic-container').innerHTML = html;
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // UPDATE CHARTS
+  // ═══════════════════════════════════════════════════════
+  function updateCharts(visible) {
+    var stats = buildStats(visible);
+
+    var STATUS_COLORS = {
+      'Done':              '#43a047', 'In Progress': '#039be5',
+      'To Do':             '#fb8c00', 'Needs Review': '#8e24aa',
+      'Awaiting Feedback': '#f9a825', 'Awaiting Inputs': '#e64a19',
+      'Ready to Deploy':   '#0288d1', 'Cancelled': '#9e9e9e'
+    };
+    var ASGN_COLORS = ['#0f6e56','#6b3fa0','#1a6fc4','#b55a1a','#9e9e9e'];
+    var CAT_PALETTE = ['#1565c0','#6b3fa0','#0f6e56','#b55a1a','#c62828','#558b2f','#0277bd','#6a1b9a','#e65100','#2e7d32'];
+    var PRIO_COLORS = { Blocker:'#c0392b', Critical:'#e67e22', Major:'#d4a017', Unassigned:'#8e9aaf' };
+
+    // Helper: destroy and recreate chart
+    function makeChart(key, canvasId, type, labels, data, colors, opts) {
+      var canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+      if (state.charts[key]) { state.charts[key].destroy(); state.charts[key] = null; }
+      var defaults = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: type !== 'bar', position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12, padding: 10 } },
+                   tooltip: { callbacks: { label: function(c){ return ' ' + c.label + ': ' + c.raw; } } } },
+        scales: type === 'bar' ? {
+          x: { ticks: { font: { size: 10 } } },
+          y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 10 } } }
+        } : {}
+      };
+      if (opts) Object.assign(defaults, opts);
+      state.charts[key] = new Chart(ctx, {
+        type: type,
+        data: { labels: labels, datasets: [{ data: data, backgroundColor: colors,
+          borderRadius: type === 'bar' ? 4 : 0, borderWidth: type === 'bar' ? 0 : 2,
+          borderColor: type === 'bar' ? colors : '#fff' }] },
+        options: defaults
+      });
+    }
+
+    // Status bar chart
+    var stLabels = Object.keys(stats.byStatus).sort(function(a,b){ return stats.byStatus[b]-stats.byStatus[a]; });
+    var stData   = stLabels.map(function(s){ return stats.byStatus[s]; });
+    var stColors = stLabels.map(function(s){ return STATUS_COLORS[s] || '#90a4ae'; });
+    makeChart('status', 'chart-status', 'bar', stLabels, stData, stColors);
+
+    // Assignee doughnut
+    var aLabels = Object.keys(stats.byAssignee).sort(function(a,b){ return stats.byAssignee[b]-stats.byAssignee[a]; });
+    var aData   = aLabels.map(function(a){ return stats.byAssignee[a]; });
+    var aColors = aLabels.map(function(a,i){ return ASGN_COLORS[i % ASGN_COLORS.length]; });
+    makeChart('assignee', 'chart-assignee', 'doughnut', aLabels, aData, aColors);
+
+    // Priority bar chart
+    var pLabels = ['Blocker','Critical','Major','Unassigned'].filter(function(p){ return stats.byPriority[p]; });
+    var pData   = pLabels.map(function(p){ return stats.byPriority[p] || 0; });
+    var pColors = pLabels.map(function(p){ return PRIO_COLORS[p] || '#aaa'; });
+    makeChart('priority', 'chart-priority', 'bar', pLabels, pData, pColors);
+
+    // Category bar (top 10)
+    var cLabels = Object.keys(stats.byCat).sort(function(a,b){ return stats.byCat[b]-stats.byCat[a]; }).slice(0,10);
+    var cData   = cLabels.map(function(c){ return stats.byCat[c]; });
+    var cColors = cLabels.map(function(c,i){ return CAT_PALETTE[i % CAT_PALETTE.length]; });
+    makeChart('category', 'chart-category', 'bar', cLabels, cData, cColors,
+      { indexAxis: 'y', plugins: { legend: { display: false } } });
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // EXPORT TO CSV
+  // ═══════════════════════════════════════════════════════
+  function exportToExcel() {
+    var visible = ALL_ROWS.filter(function(r){ return !r.classList.contains('hidden'); });
+    if (!visible.length) { alert('No visible tickets to export.'); return; }
+
+    var rows = [['Ticket ID','Priority','Summary','Status','Assignee','Category']];
+    visible.forEach(function(r){
+      var summaryCell = r.querySelector('td.summary-cell');
+      var summary = summaryCell ? summaryCell.textContent.replace(/"/g,'""').trim() : '';
+      rows.push([
+        attr(r,'ticket'), attr(r,'priority'), '"'+summary+'"',
+        attr(r,'status'), attr(r,'assignee'), attr(r,'category')
+      ]);
+    });
+
+    var csv = rows.map(function(r){ return r.join(','); }).join('\r\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href = url;
+    a.download = 'SF_Sprint159_' + new Date().toISOString().slice(0,10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // BUILD STATS  (single pass over visible rows)
+  // ═══════════════════════════════════════════════════════
+  function buildStats(visible) {
+    var byStatus = {}, byAssignee = {}, byCat = {}, byPriority = {};
+    var awaitingList = [], blockerList = [], inProgressList = [], doneList = [];
+
+    var SAME_DAY = ['SF-929','SF-928','SF-962','SF-963','SF-919','SF-912','SF-896','SF-897','SF-894','SF-895','SF-899','SF-911'];
+
+    visible.forEach(function(r){
+      var rs = attr(r,'status'), ra = attr(r,'assignee'), rc = attr(r,'category'),
+          rp = attr(r,'priority'), rt = attr(r,'ticket');
+      byStatus[rs]   = (byStatus[rs]   || 0) + 1;
+      byAssignee[ra] = (byAssignee[ra] || 0) + 1;
+      byCat[rc]      = (byCat[rc]      || 0) + 1;
+      byPriority[rp] = (byPriority[rp] || 0) + 1;
+      if (/awaiting/i.test(rs))  awaitingList.push(rt);
+      if (rp === 'Blocker')      blockerList.push(rt);
+      if (/^In Progress$/i.test(rs)) inProgressList.push(rt);
+      if (isDone(rs))            doneList.push(rt);
+    });
+
+    var total = visible.length;
+    function topN(obj, n) {
+      return Object.keys(obj).sort(function(a,b){ return obj[b]-obj[a]; }).slice(0,n);
+    }
+
+    return {
+      total: total,
+      byStatus: byStatus, byAssignee: byAssignee, byCat: byCat, byPriority: byPriority,
+      topAssignees: topN(byAssignee, 5),
+      topCats:      topN(byCat, 6),
+      awaitingList: awaitingList, blockerList: blockerList,
+      done:    visible.filter(function(r){ return isDone(attr(r,'status')); }).length,
+      active:  visible.filter(function(r){ return isActive(attr(r,'status')); }).length,
+      pending: visible.filter(function(r){ return isPending(attr(r,'status')); }).length,
+      awaitingCount: awaitingList.length,
+      blockersDone:  visible.filter(function(r){ var rp=attr(r,'priority'); return rp==='Blocker'&&isDone(attr(r,'status')); }).length,
+      sameDayCount:  visible.filter(function(r){ return SAME_DAY.indexOf(attr(r,'ticket'))>-1; }).length,
+      ipCount:     visible.filter(function(r){ return /^In Progress$/.test(attr(r,'status')); }).length,
+      nrCount:     visible.filter(function(r){ return attr(r,'status')==='Needs Review'; }).length,
+      tdCount:     visible.filter(function(r){ return attr(r,'status')==='To Do'; }).length,
+      deployCount: visible.filter(function(r){ return /deploy/i.test(attr(r,'status')); }).length,
+      bugCount:    visible.filter(function(r){ return /bug/i.test(attr(r,'category')); }).length,
+      oneSolveCount: visible.filter(function(r){ return /OneSolve/i.test(attr(r,'category')); }).length
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // RENDER HELPERS
+  // ═══════════════════════════════════════════════════════
+  function resolveMode(fs) {
+    if (!fs || fs === '__total__') return 'total';
+    if (fs === 'Done')             return 'done';
+    if (fs === 'In Progress')      return 'active';
+    if (fs === '__pending__')      return 'pending';
+    return 'other';
+  }
+
+  var BANNER = {
+    total:   { bg:'linear-gradient(135deg,#1565c0,#1976d2)', icon:'&#128202;', title:'Sprint Overview', sub:'Overall distribution, workload, and key observations' },
+    done:    { bg:'linear-gradient(135deg,#2e7d32,#43a047)', icon:'&#9989;',   title:'Done &amp; Resolved', sub:'Closure patterns, contributors, and efficiency insights' },
+    active:  { bg:'linear-gradient(135deg,#0277bd,#039be5)', icon:'&#9654;',   title:'In Progress &amp; Active', sub:'Active work, bottlenecks, and unblocking suggestions' },
+    pending: { bg:'linear-gradient(135deg,#6a1b9a,#8e24aa)', icon:'&#128270;', title:'Needs Review &amp; To Do', sub:'Bottlenecks, pending approvals, and prioritisation guidance' },
+    other:   { bg:'linear-gradient(135deg,#455a64,#607d8b)', icon:'&#128203;', title:'Filtered View', sub:'Analysis of current filter selection' }
+  };
+
+  function banner(mode) {
+    var b = BANNER[mode] || BANNER.other;
+    return '<div style="background:'+b.bg+';color:#fff;border-radius:10px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:12px">'
+      + '<span style="font-size:26px">'+b.icon+'</span>'
+      + '<div><div style="font-size:15px;font-weight:700">'+b.title+'</div>'
+      + '<div style="font-size:12px;opacity:.85;margin-top:2px">'+b.sub+'</div></div></div>';
+  }
+
+  function sectionTitle(t) {
+    return '<p class="slabel" style="margin-bottom:12px">'+t+'</p>';
+  }
+
+  function trendItem(dotCls, title, body) {
+    return '<div class="trow-item"><div class="tdot '+dotCls+'" style="margin-top:5px;flex-shrink:0"></div>'
+      + '<div><div class="ttl">'+title+'</div><div class="tbdy">'+body+'</div></div></div>';
+  }
+
+  function actionItem(hd, bd, borderColor) {
+    return '<div class="airow" style="border-left-color:'+(borderColor||'#1565c0')+'">'
+      + '<div class="aihd">'+hd+'</div><div class="aibd">'+bd+'</div></div>';
+  }
+
+  function jlk(t) {
+    return '<a class="jl" href="https://incrowdanswers.atlassian.net/browse/'+t+'" target="_blank" rel="noopener">'+t+'</a>';
+  }
+
+  function pct(n, d) { return d ? Math.round(n/d*100) : 0; }
+
+  function statBoxes(items) {
+    return '<div style="display:grid;grid-template-columns:repeat('+items.length+',1fr);gap:10px;margin-bottom:14px">'
+      + items.map(function(i){
+          return '<div style="text-align:center;background:'+i.bg+';border-radius:8px;padding:12px">'
+            + '<div style="font-size:22px;font-weight:700;color:'+i.col+'">'+i.val+'</div>'
+            + '<div style="font-size:11px;color:#555;margin-top:2px">'+i.label+'</div></div>';
+        }).join('') + '</div>';
+  }
+
+  function statusDonut(byStatus, total) {
+    var SCOL = { Done:'#43a047','In Progress':'#039be5','To Do':'#fb8c00','Needs Review':'#8e24aa',
+                 'Awaiting Feedback':'#f9a825','Awaiting Inputs':'#e64a19','Ready to Deploy':'#0288d1','Cancelled':'#9e9e9e' };
+    var items = Object.keys(byStatus).sort(function(a,b){ return byStatus[b]-byStatus[a]; });
+    return items.map(function(s){
+      var col = SCOL[s] || '#888';
+      var w   = pct(byStatus[s], total);
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+        + '<span style="width:10px;height:10px;border-radius:50%;background:'+col+';flex-shrink:0;display:inline-block"></span>'
+        + '<span style="font-size:12px;flex:1">'+s+'</span>'
+        + '<div style="width:120px;background:#eee;border-radius:4px;height:7px;overflow:hidden">'
+        + '<div style="width:'+w+'%;background:'+col+';height:7px;transition:width .4s"></div></div>'
+        + '<span style="font-size:12px;font-weight:700;color:'+col+';min-width:20px;text-align:right">'+byStatus[s]+'</span>'
+        + '<span style="font-size:11px;color:#aaa">('+w+'%)</span></div>';
+    }).join('');
+  }
+
+  function barChart(obj, topN, colors, title) {
+    var keys = Object.keys(obj).sort(function(a,b){ return obj[b]-obj[a]; }).slice(0, topN);
+    var maxV = keys.length ? obj[keys[0]] : 1;
+    return '<div class="trends-card" style="margin-top:12px"><p class="slabel" style="margin-bottom:12px">'+title+'</p>'
+      + keys.map(function(k, i){
+          var col = Array.isArray(colors) ? colors[i % colors.length] : (colors[k] || '#888');
+          var w = Math.round(obj[k]/maxV*100);
+          return '<div style="margin-bottom:10px">'
+            + '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">'
+            + '<span style="font-weight:600;color:#333">'+k+'</span>'
+            + '<span style="color:'+col+';font-weight:700">'+obj[k]+'</span></div>'
+            + '<div style="background:#eee;border-radius:4px;height:8px"><div style="width:'+w+'%;background:'+col+';height:8px;border-radius:4px;transition:width .4s"></div></div></div>';
+        }).join('') + '</div>';
+  }
+
+  var ASGN_COLS = { Ajay:'#0f6e56', Amanulla:'#6b3fa0', Naveen:'#1a6fc4', Garima:'#b55a1a', Unassigned:'#9e9e9e' };
+  var CAT_PAL = ['#1565c0','#6b3fa0','#0f6e56','#b55a1a','#c62828','#558b2f'];
+
+  function assigneeChart(stats, title) {
+    return barChart(stats.byAssignee, 5, ASGN_COLS, title);
+  }
+  function catChart(stats, title) {
+    return barChart(stats.byCat, 6, CAT_PAL, title);
+  }
+
+  function topIssues(stats) {
+    var bl = stats.blockerList.length;
+    return bl > 0 ? bl + ' open Blocker ticket' + (bl!==1?'s':'') + ' need immediate attention' : 'No open Blockers — sprint is in good shape';
+  }
+  function buildTopIssueBody(stats) {
+    return stats.blockerList.length
+      ? 'Blockers: ' + stats.blockerList.slice(0,4).map(jlk).join(', ') + (stats.blockerList.length>4?' +' +(stats.blockerList.length-4)+' more':'') + '. These have the highest business impact.'
+      : 'Keep monitoring as sprint progresses. Blockers can emerge from any category.';
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // PUBLIC API
+  // ═══════════════════════════════════════════════════════
+  window.applyFilters = function() {
+    state.metricFilter = '';
+    applyFilters();
+  };
+
+  window.filterByStatus = function(s) {
+    state.metricFilter = s;
+    document.getElementById('f-status').value = '';
+    // Switch to ticket tab
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    document.getElementById('tickets').classList.add('active');
+    var firstTab = document.querySelector('.tab');
+    if (firstTab) firstTab.classList.add('active');
+    applyFilters();
+  };
+
+  window._clearMetricFilter = function() {
+    state.metricFilter = '';
+    document.getElementById('f-status').value = '';
+    applyFilters();
+  };
+
+  window.setAssignee = function(who, btn) {
+    state.assignee = who;
+    document.querySelectorAll('.abtn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    applyFilters();
+  };
+
+  window.resetFilters = function() {
+    state.assignee = 'All';
+    state.metricFilter = '';
+    document.querySelectorAll('.abtn').forEach(function(b){ b.classList.remove('active'); });
+    var allBtn = document.querySelector('.abtn[data-who="All"]');
+    if (allBtn) allBtn.classList.add('active');
+    document.getElementById('f-priority').value = '';
+    document.getElementById('f-status').value   = '';
+    document.getElementById('f-category').value = '';
+    document.getElementById('f-search').value   = '';
+    applyFilters();
+  };
+
+  window.exportToExcel = exportToExcel;
+
+  window.ST = function(id, btn) {
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    if (btn) btn.classList.add('active');
+    // Rebuild charts when charts tab is opened (fixes canvas sizing)
+    if (id === 'charts') {
+      var visible = ALL_ROWS.filter(function(r){ return !r.classList.contains('hidden'); });
+      updateCharts(visible);
+    }
+  };
+
+  // ── INIT ──
+
+  // =======================================================
+  // SMART INSIGHT CHIP
+  // =======================================================
+  function generateSmartInsight(stats, total, fs) {
+    var wrap   = document.getElementById('insight-chip-wrap');
+    var textEl = document.getElementById('insight-text');
+    if (!wrap || !textEl) return;
+    if (!total) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    var topStatus = '', topStatusCount = 0;
+    Object.keys(stats.byStatus).forEach(function(s) {
+      if (stats.byStatus[s] > topStatusCount) { topStatusCount = stats.byStatus[s]; topStatus = s; }
+    });
+    var topA   = stats.topAssignees[0] || 'the team';
+    var topAC  = stats.byAssignee[topA] || 0;
+    var topCat = stats.topCats[0] || 'various areas';
+    var topCC  = stats.byCat[topCat] || 0;
+    var pctSt  = total ? Math.round(topStatusCount / total * 100) : 0;
+    var mode   = !fs || fs==='__total__' ? 'total'
+               : fs==='Done'            ? 'done'
+               : fs==='In Progress'     ? 'active'
+               : fs==='__pending__'     ? 'pending' : 'other';
+    var aDisp  = topA === 'Unassigned' ? 'Unassigned tickets' : topA;
+    var txt = '';
+    if (mode === 'total') {
+      if (stats.done >= stats.active && stats.done >= stats.pending) {
+        txt = total + ' tickets in view. <b>' + stats.done + ' Done</b> ('
+          + Math.round(stats.done/total*100) + '% closure). Top contributor: <b>'
+          + aDisp + '</b> (' + topAC + '). Top category: <b>' + topCat + '</b> (' + topCC + ').';
+      } else if (stats.active > stats.pending) {
+        txt = 'Most tickets are <b>' + topStatus + '</b> (' + pctSt + '%), mainly handled by <b>'
+          + aDisp + '</b>. Focus area: <b>' + topCat + '</b>. Closure rate: '
+          + Math.round(stats.done/total*100) + '%'
+          + (stats.done/total < 0.3 ? ' &mdash; consider fast-tracking pending items.' : ' &mdash; on track.');
+      } else {
+        txt = total + ' tickets &mdash; <b>' + stats.pending + ' pending</b> ('
+          + Math.round(stats.pending/total*100) + '%). <b>' + aDisp + '</b> carries the highest load ('
+          + topAC + '). Most common category: <b>' + topCat + '</b> (' + topCC + ').';
+      }
+    } else if (mode === 'done') {
+      txt = '<b>' + stats.done + ' ticket' + (stats.done!==1?'s were':' was') + ' resolved.</b> Top contributor: <b>'
+        + aDisp + '</b> (' + topAC + '). Top closed category: <b>' + topCat + '</b> (' + topCC + ').'
+        + (stats.sameDayCount ? ' <b>' + stats.sameDayCount + ' same-day closes</b> &mdash; great turnaround.' : '');
+    } else if (mode === 'active') {
+      txt = '<b>' + total + ' active ticket' + (total!==1?'s':'') + '.</b> Most are <b>'
+        + topStatus + '</b> (' + pctSt + '%). <b>' + aDisp + '</b> has the highest active load (' + topAC + '). '
+        + (stats.awaitingCount ? '<b>' + stats.awaitingCount + ' stalled</b> waiting for external input &mdash; follow up now.'
+          : 'No tickets currently stalled &mdash; good sprint momentum.');
+    } else if (mode === 'pending') {
+      txt = '<b>' + total + ' ticket' + (total!==1?'s':'')+' pending.</b> Biggest bottleneck: <b>'
+        + topCat + '</b> (' + topCC + '). <b>' + aDisp + '</b> has the largest queue (' + topAC + ').'
+        + (stats.oneSolveCount ? ' <b>' + stats.oneSolveCount + ' OneSolve epics</b> gated &mdash; escalation needed.' : '');
+    } else {
+      txt = 'Showing <b>' + total + ' ticket' + (total!==1?'s':'') + '</b>. Top status: <b>'
+        + topStatus + '</b> (' + pctSt + '%). Highest workload: <b>' + aDisp + '</b> (' + topAC + ').';
+    }
+    textEl.innerHTML = txt;
+  }
+
+  applyFilters();
+
+
+  // =======================================================
+  // SMART INSIGHT CHIP
+  // =======================================================
+  function generateSmartInsight(stats, total, fs) {
+    var wrap   = document.getElementById('insight-chip-wrap');
+    var textEl = document.getElementById('insight-text');
+    if (!wrap || !textEl) return;
+    if (!total) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    var topStatus = '', topStatusCount = 0;
+    Object.keys(stats.byStatus).forEach(function(s) {
+      if (stats.byStatus[s] > topStatusCount) { topStatusCount = stats.byStatus[s]; topStatus = s; }
+    });
+    var topA   = stats.topAssignees[0] || 'the team';
+    var topAC  = stats.byAssignee[topA] || 0;
+    var topCat = stats.topCats[0] || 'various areas';
+    var topCC  = stats.byCat[topCat] || 0;
+    var pctSt  = total ? Math.round(topStatusCount / total * 100) : 0;
+    var mode   = !fs || fs==='__total__' ? 'total'
+               : fs==='Done'            ? 'done'
+               : fs==='In Progress'     ? 'active'
+               : fs==='__pending__'     ? 'pending' : 'other';
+    var aDisp = topA === 'Unassigned' ? 'Unassigned tickets' : topA;
+    var txt   = '';
+    if (mode === 'total') {
+      if (stats.done >= stats.active && stats.done >= stats.pending) {
+        txt = total + ' tickets in view. <b>' + stats.done + ' Done</b> ('
+          + Math.round(stats.done/total*100) + '% closure). Top contributor: <b>'
+          + aDisp + '</b> (' + topAC + '). Top category: <b>' + topCat + '</b> (' + topCC + ').';
+      } else if (stats.active > stats.pending) {
+        txt = 'Most tickets are <b>' + topStatus + '</b> (' + pctSt + '%), mainly handled by <b>'
+          + aDisp + '</b>. Focus area: <b>' + topCat + '</b>. Closure rate: '
+          + Math.round(stats.done/total*100) + '%'
+          + (stats.done/total < 0.3 ? ' &mdash; consider fast-tracking pending items.' : ' &mdash; on track.');
+      } else {
+        txt = total + ' tickets &mdash; <b>' + stats.pending + ' pending</b> ('
+          + Math.round(stats.pending/total*100) + '%). <b>' + aDisp + '</b> carries the highest load ('
+          + topAC + '). Most common category: <b>' + topCat + '</b> (' + topCC + ').';
+      }
+    } else if (mode === 'done') {
+      txt = '<b>' + stats.done + ' ticket' + (stats.done!==1?'s were':' was') + ' resolved.</b> Top contributor: <b>'
+        + aDisp + '</b> (' + topAC + '). Top closed category: <b>' + topCat + '</b> (' + topCC + ').'
+        + (stats.sameDayCount ? ' <b>' + stats.sameDayCount + ' same-day closes</b> &mdash; great turnaround.' : '');
+    } else if (mode === 'active') {
+      txt = '<b>' + total + ' active ticket' + (total!==1?'s':'') + '.</b> Most are <b>'
+        + topStatus + '</b> (' + pctSt + '%). <b>' + aDisp + '</b> has the highest active load (' + topAC + '). '
+        + (stats.awaitingCount ? '<b>' + stats.awaitingCount + ' stalled</b> waiting for input &mdash; follow up now.'
+          : 'No tickets stalled &mdash; good sprint momentum.');
+    } else if (mode === 'pending') {
+      txt = '<b>' + total + ' ticket' + (total!==1?'s':'') + ' pending.</b> Biggest bottleneck: <b>'
+        + topCat + '</b> (' + topCC + '). <b>' + aDisp + '</b> has the largest queue (' + topAC + ').'
+        + (stats.oneSolveCount ? ' <b>' + stats.oneSolveCount + ' OneSolve epics</b> gated &mdash; escalation needed.' : '');
+    } else {
+      txt = 'Showing <b>' + total + ' ticket' + (total!==1?'s':'') + '</b>. Top status: <b>'
+        + topStatus + '</b> (' + pctSt + '%). Highest workload: <b>' + aDisp + '</b> (' + topAC + ').';
+    }
+    textEl.innerHTML = txt;
+  }
+
+})();
+</script>
+</body>
+</html>
